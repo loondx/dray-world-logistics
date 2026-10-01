@@ -145,7 +145,7 @@
   line-height: 1;
 }
 .hero-sky {
-  /* ends on the aerial map's first colour so the hero flows into the ocean */
+  /* ends on the journey's opening colour so the hero flows into the 3D scene */
   background:
     radial-gradient(60rem 40rem at 78% 45%, rgb(26 166 214 / 0.1), transparent 70%),
     linear-gradient(180deg, #e6f2f9 0%, #f4f9fd 100%);
@@ -427,82 +427,6 @@
   }
 }
 
-/* Aerial journey (journey/aerial): the map scrolls natively; actors follow scroll.
-   --vx/--vw are the visible window of the 1200-unit world at each breakpoint. */
-.aerial {
-  position: relative;
-  overflow-x: clip;
-  background: #f4f9fd;
-}
-.aerial-world {
-  --vx: 375;
-  --vw: 530;
-  position: relative;
-  width: calc(100% * 1200 / var(--vw));
-  margin-left: calc(-100% * var(--vx) / var(--vw));
-}
-@media (min-width: 768px) {
-  .aerial-world {
-    --vx: 150;
-    --vw: 900;
-  }
-}
-@media (min-width: 1200px) {
-  .aerial-world {
-    --vx: 0;
-    --vw: 1200;
-  }
-}
-@media (min-width: 1600px) {
-  .aerial-world {
-    --vx: -200;
-    --vw: 1600;
-  }
-}
-.aerial-anchor {
-  position: absolute;
-  left: 0;
-  width: 1px;
-  height: 1px;
-  /* lands the anchor's world position on the ride line (RIDE in world.ts) */
-  scroll-margin-top: 58svh;
-}
-.aerial-hud {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  pointer-events: none;
-}
-.aerial-hud-sticky {
-  position: sticky;
-  top: 4.5rem;
-  padding-inline: 0.75rem;
-}
-.aerial-caption {
-  pointer-events: auto;
-  max-width: 26rem;
-  border-radius: 1rem;
-  background: rgb(255 255 255 / 0.9);
-  padding: 0.85rem 1rem;
-  box-shadow:
-    0 1px 2px rgb(15 22 49 / 0.06),
-    0 12px 32px rgb(15 22 49 / 0.12);
-  backdrop-filter: blur(10px);
-}
-.aerial-caption .journey-title {
-  font-size: clamp(1.5rem, 3vw, 2.4rem);
-}
-@media (min-width: 1024px) {
-  .aerial-hud-sticky {
-    top: 6rem;
-    max-width: 80rem;
-    margin-inline: auto;
-    padding-inline: 1.5rem;
-  }
-  .aerial-caption {
-    padding: 1.25rem 1.4rem;
-  }
-}
 /* 3D journey (journey/scene): a tall section with a pinned WebGL stage; scroll drives it. */
 .journey3d {
   position: relative;
