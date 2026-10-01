@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// HSTS is set by Nginx (it terminates TLS); these apply to every response.
+// HSTS is set by Nginx (self-hosted) or by Vercel; these apply to every response.
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -9,8 +9,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  // Self-contained server bundle for the Docker image.
-  output: "standalone",
+  // Self-contained server bundle for the Docker image (Vercel builds its own output).
+  output: process.env.VERCEL ? undefined : "standalone",
   poweredByHeader: false,
   experimental: {
     // Company logo upload (max 2 MB) goes through a server action. Load documents
