@@ -21,7 +21,9 @@ if (process.env.VERCEL) {
 run("prisma generate");
 
 const production = process.env.VERCEL_ENV === "production";
-if (production || process.env.RUN_MIGRATIONS === "true") {
+if (!process.env.DATABASE_URL?.trim()) {
+  console.log("No DATABASE_URL configured: building the public website without database features.");
+} else if (production || process.env.RUN_MIGRATIONS === "true") {
   run("prisma migrate deploy");
 } else {
   console.log(`Skipping migrations for the ${process.env.VERCEL_ENV ?? "local"} build.`);

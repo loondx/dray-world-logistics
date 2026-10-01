@@ -9,6 +9,7 @@ import {
   SESSION_TOUCH_INTERVAL_MS,
 } from "@/lib/auth/constants";
 import { generateSessionToken, hashSessionToken } from "@/lib/auth/session-token";
+import { isDatabaseEnabled } from "@/lib/database-enabled";
 import { db } from "@/lib/db";
 import { getEnv, isProduction } from "@/lib/env";
 
@@ -53,6 +54,7 @@ export async function createSession(userId: string, userAgent: string | null): P
 // unknown, expired or disabled-user sessions.
 export async function validateSessionCookie(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
+  if (!isDatabaseEnabled()) return null;
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   if (!token) return null;
 

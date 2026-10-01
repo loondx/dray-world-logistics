@@ -206,6 +206,16 @@ browser-supplied type. Deleting a document hides it (reason + audit entry); the 
 
 ## Deploying to Vercel
 
+### Public website without PostgreSQL
+
+Leave `DATABASE_URL` unset to deploy the public website immediately. No database, Blob token,
+or `APP_URL` is required in this mode. Migrations are skipped, company details come from
+`src/config/company-defaults.ts`, and the homepage, privacy and terms pages work normally.
+Sign-in and online quote submission display an unavailable message; no requests are saved.
+Connect PostgreSQL and configure the variables below when enabling the operations portal.
+
+### Full operations portal
+
 The app runs on Vercel with a hosted PostgreSQL and a **private** Vercel Blob store for documents
 (generated PDFs, uploaded PODs, the company logo). Files are never public: they are only served through
 the authenticated `/api/documents/[id]/download` route.

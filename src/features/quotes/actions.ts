@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { isDatabaseEnabled } from "@/lib/database-enabled";
 import { QuoteRequestStatus } from "@/generated/prisma/enums";
 import {
   failure,
@@ -19,6 +20,8 @@ import { HONEYPOT_FIELD, leadRequestSchema } from "./schemas";
 
 // PUBLIC action (no login): website quote request; validated, throttled, honeypot-protected.
 export async function submitQuoteRequestAction(formData: FormData): Promise<ActionResult<null>> {
+  if (!isDatabaseEnabled())
+    return failure("Online quote requests are temporarily unavailable. Please check back soon.");
   return safeAction(
     "submitQuoteRequest",
     async () => {

@@ -2,6 +2,7 @@ import { ArrowRight, CircleCheck, Mail, MapPin, Phone } from "lucide-react";
 
 import { QuoteForm } from "@/components/marketing/quote-form";
 import { Reveal } from "@/components/marketing/reveal";
+import { isDatabaseEnabled } from "@/lib/database-enabled";
 import { WHY_POINTS } from "@/config/marketing-content";
 import type { PublicCompanyProfile } from "@/server/services/company-settings.service";
 
@@ -73,7 +74,16 @@ export function QuoteSection({ company }: { company: PublicCompanyProfile }) {
           </address>
         </Reveal>
         <Reveal delay={0.08}>
-          <QuoteForm phone={company.phone} />
+          {isDatabaseEnabled() ? (
+            <QuoteForm phone={company.phone} />
+          ) : (
+            <div className="rounded-lg bg-white p-8 shadow-sm">
+              <h3 className="text-xl font-semibold text-brand-navy">Quote requests</h3>
+              <p className="mt-3 text-slate-600">
+                Online quote requests are temporarily unavailable. Please check back soon.
+              </p>
+            </div>
+          )}
         </Reveal>
       </div>
     </section>

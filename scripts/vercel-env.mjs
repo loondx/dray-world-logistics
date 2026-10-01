@@ -1,5 +1,6 @@
 // Return field names and instructions only; never print connection strings or tokens.
 export function validateVercelEnvironment(env) {
+  if (!env.DATABASE_URL?.trim()) return [];
   const errors = [];
   for (const field of ["DATABASE_URL", "DATABASE_URL_UNPOOLED"]) {
     const value = env[field]?.trim();

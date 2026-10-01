@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import { COMPANY_DEFAULTS } from "@/config/company-defaults";
 import type { CompanySettings } from "@/generated/prisma/client";
+import { isDatabaseEnabled } from "@/lib/database-enabled";
 import { db } from "@/lib/db";
 
 const COMPANY_SETTINGS_ID = "company";
@@ -44,6 +45,10 @@ export type PublicCompanyProfile = Pick<
 >;
 
 export async function getPublicCompanyProfile(): Promise<PublicCompanyProfile> {
+  await connection();
+  if (!isDatabaseEnabled()) {
+    return { ...COMPANY_DEFAULTS, phone: null, email: null, website: null, mcNumber: null, dotNumber: null };
+  }
   const s = await getCompanySettings();
   return {
     legalName: s.legalName,

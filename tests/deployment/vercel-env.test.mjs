@@ -14,9 +14,9 @@ test("accepts configured deployments and optional blank direct connection", () =
 });
 
 test("rejects missing and invalid deployment configuration without exposing secrets", () => {
-  assert.equal(validate({}).length, 3);
+  assert.deepEqual(validate({}), []);
+  assert.deepEqual(validate({ DATABASE_URL: " " }), []);
   for (const override of [
-    { DATABASE_URL: "" },
     { DATABASE_URL: "https://db.example" },
     { DATABASE_URL_UNPOOLED: "invalid" },
     { APP_URL: "http://localhost:3000" },
