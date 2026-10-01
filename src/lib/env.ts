@@ -15,11 +15,19 @@ const envSchema = z.object({
     .min(1)
     .max(24 * 30)
     .default(12),
-  DOCUMENT_STORAGE_PATH: z.string().min(1, "DOCUMENT_STORAGE_PATH is required"),
+  // Document storage: "local" (a private folder; Docker / self-hosting) or "blob"
+  // (private Vercel Blob store). Defaults to blob when a Blob token is configured.
+  STORAGE_DRIVER: z.enum(["local", "blob"]).optional(),
+  DOCUMENT_STORAGE_PATH: z.string().optional(),
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
   MAX_DOCUMENT_SIZE_MB: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+/** Vercel Functions reject request bodies over 4.5 MB, so uploads are capped below it. */
+const VERCEL_MAX_UPLOAD_MB = 4;
+
 export type ServerEnv = z.infer<typeof envSchema> & {
+  storageDriver: "local" | "blob";
   documentStorageRoot: string;
   maxDocumentSizeBytes: number;
 };
@@ -35,10 +43,24 @@ export function getEnv(): ServerEnv {
     throw new Error(`Invalid server environment configuration: ${fields}`);
   }
 
+  const data = parsed.data;
+  const storageDriver = data.STORAGE_DRIVER ?? (data.BLOB_READ_WRITE_TOKEN ? "blob" : "local");
+  if (storageDriver === "local" && !data.DOCUMENT_STORAGE_PATH) {
+    throw new Error("Invalid server environment configuration: DOCUMENT_STORAGE_PATH is required");
+  }
+  if (storageDriver === "blob" && !data.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("Invalid server environment configuration: BLOB_READ_WRITE_TOKEN is required");
+  }
+  const maxMb = process.env.VERCEL
+    ? Math.min(data.MAX_DOCUMENT_SIZE_MB, VERCEL_MAX_UPLOAD_MB)
+    : data.MAX_DOCUMENT_SIZE_MB;
+
   cached = {
-    ...parsed.data,
-    documentStorageRoot: path.resolve(parsed.data.DOCUMENT_STORAGE_PATH),
-    maxDocumentSizeBytes: parsed.data.MAX_DOCUMENT_SIZE_MB * 1024 * 1024,
+    ...data,
+    MAX_DOCUMENT_SIZE_MB: maxMb,
+    storageDriver,
+    documentStorageRoot: data.DOCUMENT_STORAGE_PATH ? path.resolve(data.DOCUMENT_STORAGE_PATH) : "",
+    maxDocumentSizeBytes: maxMb * 1024 * 1024,
   };
   return cached;
 }

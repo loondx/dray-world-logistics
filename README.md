@@ -100,8 +100,12 @@ See `.env.example`. Server-only; nothing is exposed with `NEXT_PUBLIC_`.
 | `POSTGRES_HOST_PORT`                                  | bound to `127.0.0.1` only                                         |
 | `APP_URL`                                             | public base URL                                                   |
 | `SESSION_TTL_HOURS`                                   | idle timeout (sliding); sessions also expire 7 days after sign-in |
-| `DOCUMENT_STORAGE_PATH`                               | private document root when running on the host                    |
-| `MAX_DOCUMENT_SIZE_MB`                                | upload limit                                                      |
+| `STORAGE_DRIVER`                                      | `local` or `blob`; defaults to `blob` when a Blob token is set    |
+| `DOCUMENT_STORAGE_PATH`                               | private document root for the `local` driver                      |
+| `BLOB_READ_WRITE_TOKEN`                               | private Vercel Blob store for the `blob` driver (set by Vercel)   |
+| `DATABASE_URL_UNPOOLED`                               | optional direct connection used by migrations (set by Neon)       |
+| `RUN_MIGRATIONS`                                      | `true` to migrate on Vercel preview builds (own database only)    |
+| `MAX_DOCUMENT_SIZE_MB`                                | upload limit (capped at 4 MB on Vercel)                           |
 | `DATA_ROOT`                                           | Docker bind-mount root: `postgres/`, `documents/`, `backups/`     |
 | `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`      | optional, only read by `pnpm admin:create`                        |
 
@@ -191,6 +195,38 @@ PDF_OUTPUT_DIR=/tmp/pdf-preview pnpm vitest run tests/unit/pdf-documents.test.ts
 `/api/documents/<id>/download`, which checks the session and permissions, looks the file up by database id and
 verifies the path stays inside the storage root. Uploads are identified by content (magic bytes), not by name or
 browser-supplied type. Deleting a document hides it (reason + audit entry); the file is retained.
+
+## Git workflow
+
+- `main` is always deployable; Vercel deploys it to production.
+- Work on a branch (`feat/…`, `fix/…`), open a pull request, and let the Vercel preview and
+  `pnpm check` pass before merging. Squash-merge to keep `main` readable.
+- Never commit `.env*` files (only `.env.example`); secrets live in Vercel / the server.
+- Schema changes ship with their migration (`pnpm db:migrate`) and a row in the migration log.
+
+## Deploying to Vercel
+
+The app runs on Vercel with a hosted PostgreSQL and a **private** Vercel Blob store for documents
+(generated PDFs, uploaded PODs, the company logo). Files are never public: they are only served through
+the authenticated `/api/documents/[id]/download` route.
+
+1. **Import the repository** in Vercel (framework: Next.js). `vercel.json` sets the install and build
+   commands; the build runs `scripts/vercel-build.mjs` (Prisma generate → migrations → `next build`).
+2. **Database:** add Neon from the Vercel Marketplace (Storage → Neon). It sets `DATABASE_URL` (pooled)
+   and `DATABASE_URL_UNPOOLED` (used for migrations). Pick a region close to the function region.
+3. **Documents:** Storage → Blob → create a **private** store and connect it; this sets
+   `BLOB_READ_WRITE_TOKEN`, which switches document storage to Blob automatically.
+4. **Environment variables** (Production, and Preview if previews get their own database):
+   `APP_URL` (the production URL), `SESSION_TTL_HOURS` (optional), and
+   `ENABLE_EXPERIMENTAL_COREPACK=1` so Vercel uses the pnpm version pinned in `package.json`.
+5. **Deploy**, then create the first admin from your machine against the production database:
+   `DATABASE_URL=<production direct URL> pnpm admin:create --email … --name "…"`.
+
+Migrations run on **production** builds only, so a preview can never change the production schema.
+To migrate previews too, give them a separate database (e.g. Neon preview branches) and set
+`RUN_MIGRATIONS=true` for the Preview environment.
+
+Limits on Vercel: request bodies are capped at 4.5 MB, so document uploads are limited to 4 MB there.
 
 ## Docker / deployment (summary — full guide in Phase 8)
 

@@ -10,7 +10,8 @@ import { getTestDatabaseUrl } from "./test-database-url";
 
 // Runs before each test file is imported, so the app's db singleton connects to the test database.
 process.env.DATABASE_URL = getTestDatabaseUrl();
-// Each test file gets a throwaway document storage directory.
+// Each test file gets a throwaway local document storage directory (never a real Blob store).
+process.env.STORAGE_DRIVER = "local";
 process.env.DOCUMENT_STORAGE_PATH = mkdtempSync(path.join(os.tmpdir(), "dray-world-test-docs-"));
 
 // Server code calls Next.js request APIs; outside a request they are replaced with in-memory fakes.

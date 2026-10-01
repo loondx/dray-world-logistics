@@ -10,6 +10,8 @@ export default defineConfig({
   datasource: {
     // `prisma generate` needs no connection, so a missing URL must not break
     // `pnpm install` / Docker builds. Migrate commands fail loudly without it.
-    url: process.env.DATABASE_URL ?? "",
+    // Migrations use a direct (non-pooled) connection when one is provided, e.g. the
+    // DATABASE_URL_UNPOOLED that the Neon integration sets on Vercel.
+    url: process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL ?? "",
   },
 });
