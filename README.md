@@ -219,10 +219,15 @@ the authenticated `/api/documents/[id]/download` route.
 4. **Environment variables** (Production, and Preview if previews get their own database):
    `APP_URL` (the production URL), `SESSION_TTL_HOURS` (optional), and
    `ENABLE_EXPERIMENTAL_COREPACK=1` so Vercel uses the pnpm version pinned in `package.json`.
-5. **Deploy**, then create the first admin from your machine against the production database:
+5. **Verify configuration before redeploying:** `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, and
+   an HTTPS `APP_URL` must be set for the target environment. Set `STORAGE_DRIVER=blob` or leave it
+   unset. `DATABASE_URL_UNPOOLED` is optional; an empty value falls back to `DATABASE_URL` for
+   migrations. Use Node.js **24.x**. The build validates configuration before running migrations.
+   Changes to Vercel environment variables require a new deployment.
+6. **Deploy**, then create the first admin from your machine against the production database:
    `DATABASE_URL=<production direct URL> pnpm admin:create --email … --name "…"`.
 
-Migrations run on **production** builds only, so a preview can never change the production schema.
+Migrations run on **production** builds by default. Preview builds skip migrations unless explicitly enabled.
 To migrate previews too, give them a separate database (e.g. Neon preview branches) and set
 `RUN_MIGRATIONS=true` for the Preview environment.
 
@@ -256,6 +261,6 @@ Nginx/HTTPS configuration, backup/restore scripts and the upgrade procedure arri
 ## Troubleshooting
 
 - **`Invalid server environment configuration: …`** — a required variable is missing from `.env`.
-- **`Connection url is empty`** from Prisma — `DATABASE_URL` is not set in the shell/`.env`.
+- **`Connection url is empty`** from Prisma — set `DATABASE_URL` in the shell/`.env`, or in Vercel Project Settings → Environment Variables for Production (and Preview when used), then redeploy. Connecting a database to another project or environment does not configure this deployment.
 - **Integration tests fail to connect** — start Postgres: `docker compose up -d postgres`.
 - **`EACCES` scanning `.data/postgres`** — `DATA_ROOT` points inside the repo; move it outside.

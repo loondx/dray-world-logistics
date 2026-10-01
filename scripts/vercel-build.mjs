@@ -4,8 +4,19 @@
 // production schema. Set RUN_MIGRATIONS=true for previews that have their own database
 // (for example a Neon branch per preview) to migrate those too.
 import { execSync } from "node:child_process";
+import { validateVercelEnvironment } from "./vercel-env.mjs";
 
 const run = (command) => execSync(command, { stdio: "inherit" });
+
+if (process.env.VERCEL) {
+  const errors = validateVercelEnvironment(process.env);
+  if (errors.length) {
+    console.error(
+      `Vercel configuration is incomplete:\n${errors.map((error) => `- ${error}`).join("\n")}\nSet these in Project Settings → Environment Variables for this deployment environment, then redeploy.`,
+    );
+    process.exit(1);
+  }
+}
 
 run("prisma generate");
 

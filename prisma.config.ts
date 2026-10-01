@@ -12,6 +12,6 @@ export default defineConfig({
     // `pnpm install` / Docker builds. Migrate commands fail loudly without it.
     // Migrations use a direct (non-pooled) connection when one is provided, e.g. the
     // DATABASE_URL_UNPOOLED that the Neon integration sets on Vercel.
-    url: process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL ?? "",
+    url: process.env.DATABASE_URL_UNPOOLED?.trim() || process.env.DATABASE_URL?.trim() || "",
   },
 });

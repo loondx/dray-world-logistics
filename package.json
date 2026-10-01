@@ -4,14 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
+    "build": "next build && node scripts/package-standalone.mjs",
     "start": "node .next/standalone/server.js",
     "vercel-build": "node scripts/vercel-build.mjs",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run",
+    "test": "node --test tests/deployment/*.test.mjs && vitest run",
     "test:watch": "vitest",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
     "postinstall": "prisma generate",
@@ -65,6 +65,6 @@
   },
   "packageManager": "pnpm@11.2.2",
   "engines": {
-    "node": ">=24.0.0"
+    "node": "24.x"
   }
 }
