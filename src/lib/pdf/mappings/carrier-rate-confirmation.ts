@@ -33,7 +33,6 @@ export function toCarrierRateConfirmationDTO(
       title: CARRIER_RATE_CONFIRMATION_TITLE,
       loadNumber: load.loadNumber,
       documentDate: context.documentDate,
-      generatedBy: context.generatedBy,
     },
     company: context.company,
     summary: fields([

@@ -1,7 +1,7 @@
 import { Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
-
+import brandEmblem from "@/assets/brand/dray-world-mark.png";
 import { ConfirmActionButton } from "@/components/dashboard/confirm-action-button";
 import { Panel } from "@/components/dashboard/description-list";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -47,7 +47,7 @@ export default async function SettingsPage() {
             <ConfirmActionButton
               action={removeLogoAction}
               title="Remove logo?"
-              description="Documents will show the company name as text instead."
+              description="Documents will go back to the standard DRAY-WORLD emblem."
               confirmLabel="Remove"
               variant="ghost"
               size="xs"
@@ -70,7 +70,13 @@ export default async function SettingsPage() {
                 className="max-h-full w-auto max-w-full object-contain"
               />
             ) : (
-              <span className="text-xs text-muted-foreground">No logo — documents show the name</span>
+              // Same fallback the PDFs use (COMPANY_DEFAULT_PDF_LOGO).
+              <Image
+                src={brandEmblem}
+                alt="Standard brand emblem (used on documents)"
+                sizes="220px"
+                className="max-h-full w-auto max-w-full object-contain"
+              />
             )}
           </div>
           <div className="flex-1">

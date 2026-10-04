@@ -4,7 +4,9 @@ import { StyleSheet } from "@react-pdf/renderer";
 export const PDF_COLORS = {
   ink: "#111827",
   muted: "#4b5563",
-  navy: "#12305f",
+  // Brand palette from the official logo.
+  navy: "#18234a",
+  cyan: "#1aa6d6",
   rule: "#1f2937",
   border: "#6b7280",
   fill: "#f3f5f8",

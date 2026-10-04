@@ -120,7 +120,6 @@ export const documentContext: DocumentContext = {
     email: null,
     logo: null,
   },
-  generatedBy: "Dev Admin",
   documentDate: "10/01/2026",
   settings: {
     carrierTerms:

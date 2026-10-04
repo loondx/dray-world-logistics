@@ -31,7 +31,6 @@ export function toBillOfLadingDTO(load: BillOfLadingSource, context: DocumentCon
       title: BILL_OF_LADING_TITLE,
       loadNumber: load.loadNumber,
       documentDate: context.documentDate,
-      generatedBy: context.generatedBy,
     },
     company: context.company,
     summary: fields([

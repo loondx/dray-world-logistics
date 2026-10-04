@@ -15,3 +15,8 @@ export const COMPANY_DEFAULTS = {
   postalCode: "L3S 2B3",
   country: "Canada",
 } as const;
+
+// Official brand emblem (globe, plane, ship, truck) printed on generated PDFs when no
+// logo has been uploaded in Settings → Company. Path is relative to the project root;
+// next.config.ts traces it into the server bundle.
+export const COMPANY_DEFAULT_PDF_LOGO = "src/assets/brand/dray-world-mark.png";

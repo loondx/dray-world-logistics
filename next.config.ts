@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   // Self-contained server bundle for the Docker image (Vercel builds its own output).
   output: process.env.VERCEL ? undefined : "standalone",
   poweredByHeader: false,
+  // Generated PDFs read the brand emblem from disk (COMPANY_DEFAULT_PDF_LOGO); PDFs are
+  // generated from load pages' server actions, so every server route carries the file.
+  outputFileTracingIncludes: {
+    "/**": ["./src/assets/brand/dray-world-mark.png"],
+  },
   experimental: {
     // Company logo upload (max 2 MB) goes through a server action. Load documents
     // use the /api/loads/[id]/documents route handler with its own size limit.

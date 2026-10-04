@@ -5,8 +5,8 @@ import emblem from "@/assets/brand/dray-world-mark.png";
 import globeIcon from "@/assets/brand/dray-world-icon.png";
 import { cn } from "@/lib/utils";
 
-// Official DRAY-WORLD logo (supplied by the client). Generated documents still use the
-// logo uploaded in Settings.
+// Official DRAY-WORLD logo (supplied by the client). Generated PDFs print the logo uploaded
+// in Settings, falling back to the emblem (see COMPANY_DEFAULT_PDF_LOGO).
 
 /** Square globe tile — small UI spots (dashboard sidebar, login). */
 export function BrandMark({ className }: { className?: string }) {

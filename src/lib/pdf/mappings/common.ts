@@ -4,10 +4,10 @@ export { formatMiles, formatWeight } from "@/lib/labels/units";
 import type { PdfCompany, PdfField, PdfStop } from "../types";
 
 // Everything a mapping needs besides the load itself. Built on the server from
-// CompanySettings and the current user.
+// CompanySettings. Staff names are deliberately absent: external documents speak for
+// the company, and who generated a version is kept in Document.createdById + the audit log.
 export type DocumentContext = {
   company: PdfCompany;
-  generatedBy: string;
   documentDate: string;
   settings: {
     carrierTerms: string | null;

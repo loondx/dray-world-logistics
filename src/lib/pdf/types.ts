@@ -53,7 +53,6 @@ export type PdfDocumentMeta = {
   title: string;
   loadNumber: number;
   documentDate: string;
-  generatedBy: string;
 };
 
 export type CarrierRateConfirmationDTO = {

@@ -81,7 +81,7 @@ export async function generateLoadDocument(
   type: GeneratedDocumentType,
   user: SessionUser,
 ): Promise<StoredDocumentSummary> {
-  const context = await buildDocumentContext(await getCompanySettings(), user.name);
+  const context = await buildDocumentContext(await getCompanySettings());
   const dto = await buildDocumentDTO(type, loadId, context);
   const pdf = await renderPdf(dto);
 

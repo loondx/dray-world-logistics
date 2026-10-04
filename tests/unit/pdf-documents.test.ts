@@ -1,8 +1,10 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { COMPANY_DEFAULT_PDF_LOGO } from "@/config/company-defaults";
+import type { DocumentContext } from "@/lib/pdf/mappings/common";
 import { toBillOfLadingDTO } from "@/lib/pdf/mappings/bill-of-lading";
 import { toCarrierRateConfirmationDTO } from "@/lib/pdf/mappings/carrier-rate-confirmation";
 import { toShipperRateConfirmationDTO } from "@/lib/pdf/mappings/shipper-rate-confirmation";
@@ -92,11 +94,24 @@ describe("bill of lading DTO", () => {
 });
 
 describe("PDF rendering", () => {
+  // Render with the bundled brand emblem, as production does when no logo is uploaded.
+  const branded: DocumentContext = {
+    ...documentContext,
+    company: {
+      ...documentContext.company,
+      logo: { data: readFileSync(path.join(process.cwd(), COMPANY_DEFAULT_PDF_LOGO)), format: "png" },
+    },
+  };
   const cases: [string, GeneratedDocumentDTO][] = [
-    ["carrier-rate-confirmation", toCarrierRateConfirmationDTO(carrierSource, documentContext)],
-    ["shipper-rate-confirmation", toShipperRateConfirmationDTO(shipperSource, documentContext)],
-    ["bol", toBillOfLadingDTO(bolSource, documentContext)],
+    ["carrier-rate-confirmation", toCarrierRateConfirmationDTO(carrierSource, branded)],
+    ["shipper-rate-confirmation", toShipperRateConfirmationDTO(shipperSource, branded)],
+    ["bol", toBillOfLadingDTO(bolSource, branded)],
+    ["carrier-rate-confirmation-no-logo", toCarrierRateConfirmationDTO(carrierSource, documentContext)],
   ];
+
+  it("never carries the generating user's name", () => {
+    for (const [, dto] of cases) expect(Object.keys(dto.meta)).not.toContain("generatedBy");
+  });
 
   it.each(cases)("renders %s as a valid PDF", async (name, dto) => {
     const pdf = await renderPdf(dto);
