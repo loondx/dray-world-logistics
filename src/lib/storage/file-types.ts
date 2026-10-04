@@ -19,13 +19,3 @@ export function detectFileType(header: Uint8Array): AllowedFileType | null {
   const match = SIGNATURES.find(({ bytes }) => bytes.every((byte, index) => header[index] === byte));
   return match?.type ?? null;
 }
-
-// Keeps the original name for display/download only (never used as a path).
-export function sanitizeDisplayFilename(name: string, fallback = "document"): string {
-  const base = name.split(/[\\/]/).pop() ?? "";
-  const cleaned = base
-    .replace(/[\u0000-\u001f\u007f"<>|:*?]/g, "")
-    .trim()
-    .slice(0, 180);
-  return cleaned || fallback;
-}

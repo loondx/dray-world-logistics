@@ -43,6 +43,7 @@ const LOAD_LIST_SELECT = {
   deliveryDate: true,
   clientRate: true,
   carrierRate: true,
+  charges: { select: { amount: true } },
   client: { select: { id: true, companyName: true } },
   carrier: { select: { id: true, legalName: true } },
   driver: { select: { id: true, firstName: true, lastName: true } },
@@ -121,7 +122,7 @@ export function getLoadDetail(id: string) {
       carrier: true,
       driver: true,
       statusHistory: { orderBy: { createdAt: "desc" } },
-      documents: { where: { deletedAt: null }, orderBy: [{ createdAt: "desc" }] },
+      charges: { orderBy: { createdAt: "asc" } },
     },
   });
 }

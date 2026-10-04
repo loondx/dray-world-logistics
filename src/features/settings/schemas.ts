@@ -5,6 +5,7 @@ import { UserRole } from "@/generated/prisma/enums";
 import {
   optionalEmail,
   optionalLongText,
+  optionalPaymentTermsDays,
   optionalPhone,
   optionalText,
   requiredText,
@@ -26,6 +27,8 @@ export const companyDetailsSchema = z.object({
   website: optionalText(200),
   mcNumber: optionalText(30),
   dotNumber: optionalText(30),
+  scacCode: optionalText(4).transform((value) => value?.toUpperCase() ?? null),
+  dunsNumber: optionalText(13),
   businessNumber: optionalText(40),
 });
 
@@ -37,6 +40,8 @@ export const documentTermsSchema = z.object({
   bolInstructions: optionalLongText,
   bolTerms: optionalLongText,
   paymentInstructions: optionalLongText,
+  invoicePaymentTermsDays: optionalPaymentTermsDays,
+  invoiceNotes: optionalLongText,
 });
 
 export type DocumentTermsInput = z.infer<typeof documentTermsSchema>;

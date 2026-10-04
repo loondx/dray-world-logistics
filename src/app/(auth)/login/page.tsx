@@ -10,7 +10,7 @@ import { isDatabaseEnabled } from "@/lib/database-enabled";
 import { getCurrentUser } from "@/server/auth/guards";
 import { getPublicCompanyProfile } from "@/server/services/company-settings.service";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = { title: "Sign in", robots: { index: false, follow: false } };
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next } = await searchParams;

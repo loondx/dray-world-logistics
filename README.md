@@ -4,8 +4,8 @@ One Next.js application containing:
 
 - **Public website** — `src/app/(marketing)` (full site is Phase 7; an interim page is live now)
 - **Private Transportation Management System** — `src/app/(dashboard)`: loads, clients, carriers, drivers, documents
-- **Document generation** — Carrier Load Confirmation, Customer Rate Confirmation and Bill of Lading PDFs,
-  laid out after the client's reference documents; POD/COD and other uploads; full version history
+- **Document generation** — Carrier Load Confirmation, Client Rate Confirmation, Bill of Lading and client Invoice PDFs,
+  laid out after the client's reference documents; built on demand and downloaded, never stored
 
 Deployed as a modular monolith on one Linux VPS: `Nginx → Next.js → PostgreSQL`, with generated and uploaded
 documents on private disk storage.
@@ -38,7 +38,7 @@ src/
     (marketing)/        public website — must not import TMS business logic
     (auth)/login/       sign-in
     (dashboard)/        internal TMS (every page calls requireUser/requirePermission)
-    api/                route handlers (health, document download/upload)
+    api/                route handlers (health, on-demand document download, company logo)
   components/           ui/ (shadcn), brand/, auth/, dashboard/, …
   config/               company-defaults.ts — the only place company details appear in code
   features/<domain>/    server actions + zod schemas per domain
@@ -68,23 +68,25 @@ docker compose up -d postgres
 pnpm db:migrate:deploy       # apply migrations
 pnpm db:seed                 # optional: fictitious sample clients/carriers (refuses in production)
 pnpm admin:create            # create your login (prompts for email, name, password)
+pnpm company:defaults        # copy confirmed company details (MC, DOT, SCAC, DUNS, phone…) into empty Settings fields
 pnpm dev                     # http://localhost:3000 → /login
 ```
 
 ### Commands
 
-| Command                  | Purpose                                                    |
-| ------------------------ | ---------------------------------------------------------- |
-| `pnpm dev`               | development server                                         |
-| `pnpm build`             | production build (standalone output)                       |
-| `pnpm start`             | run the standalone production build                        |
-| `pnpm check`             | format check + lint + typecheck + tests                    |
-| `pnpm test`              | all tests (needs the Postgres container running)           |
-| `pnpm format`            | Prettier                                                   |
-| `pnpm db:migrate`        | **development only**: create/apply a new migration         |
-| `pnpm db:migrate:deploy` | apply pending migrations (production path)                 |
-| `pnpm db:seed`           | development sample data                                    |
-| `pnpm admin:create`      | create an admin, or `--reset-password` for an existing one |
+| Command                  | Purpose                                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `pnpm dev`               | development server                                                                            |
+| `pnpm build`             | production build (standalone output)                                                          |
+| `pnpm start`             | run the standalone production build                                                           |
+| `pnpm check`             | format check + lint + typecheck + tests                                                       |
+| `pnpm test`              | all tests (needs the Postgres container running)                                              |
+| `pnpm format`            | Prettier                                                                                      |
+| `pnpm db:migrate`        | **development only**: create/apply a new migration                                            |
+| `pnpm db:migrate:deploy` | apply pending migrations (production path)                                                    |
+| `pnpm db:seed`           | development sample data                                                                       |
+| `pnpm admin:create`      | create an admin, or `--reset-password` for an existing one                                    |
+| `pnpm company:defaults`  | fill empty Settings → Company fields from `src/config/company-defaults.ts` (never overwrites) |
 
 Integration tests use a separate database named `<POSTGRES_DB>_test` (created and migrated automatically);
 they never touch the development database.
@@ -93,21 +95,21 @@ they never touch the development database.
 
 See `.env.example`. Server-only; nothing is exposed with `NEXT_PUBLIC_`.
 
-| Variable                                              | Notes                                                             |
-| ----------------------------------------------------- | ----------------------------------------------------------------- |
-| `DATABASE_URL`                                        | host-side connection (Compose overrides the host to `postgres`)   |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Postgres container credentials                                    |
-| `POSTGRES_HOST_PORT`                                  | bound to `127.0.0.1` only                                         |
-| `APP_URL`                                             | public base URL                                                   |
-| `SESSION_TTL_HOURS`                                   | idle timeout (sliding); sessions also expire 7 days after sign-in |
-| `STORAGE_DRIVER`                                      | `local` or `blob`; defaults to `blob` when a Blob token is set    |
-| `DOCUMENT_STORAGE_PATH`                               | private document root for the `local` driver                      |
-| `BLOB_READ_WRITE_TOKEN`                               | private Vercel Blob store for the `blob` driver (set by Vercel)   |
-| `DATABASE_URL_UNPOOLED`                               | optional direct connection used by migrations (set by Neon)       |
-| `RUN_MIGRATIONS`                                      | `true` to migrate on Vercel preview builds (own database only)    |
-| `MAX_DOCUMENT_SIZE_MB`                                | upload limit (capped at 4 MB on Vercel)                           |
-| `DATA_ROOT`                                           | Docker bind-mount root: `postgres/`, `documents/`, `backups/`     |
-| `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`      | optional, only read by `pnpm admin:create`                        |
+| Variable                                              | Notes                                                                    |
+| ----------------------------------------------------- | ------------------------------------------------------------------------ |
+| `DATABASE_URL`                                        | host-side connection (Compose overrides the host to `postgres`)          |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Postgres container credentials                                           |
+| `POSTGRES_HOST_PORT`                                  | bound to `127.0.0.1` only                                                |
+| `APP_URL`                                             | public base URL                                                          |
+| `SESSION_TTL_HOURS`                                   | idle timeout (sliding); sessions also expire 7 days after sign-in        |
+| `STORAGE_DRIVER`                                      | `local` or `blob`; defaults to `blob` when a Blob token is set           |
+| `DOCUMENT_STORAGE_PATH`                               | private document root for the `local` driver                             |
+| `BLOB_READ_WRITE_TOKEN`                               | private Vercel Blob store for the `blob` driver (set by Vercel)          |
+| `DATABASE_URL_UNPOOLED`                               | optional direct connection used by migrations (set by Neon)              |
+| `RUN_MIGRATIONS`                                      | `true` to migrate on Vercel preview builds (own database only)           |
+| `MAX_DOCUMENT_SIZE_MB`                                | unused since documents are no longer uploaded (kept for older env files) |
+| `DATA_ROOT`                                           | Docker bind-mount root: `postgres/`, `documents/`, `backups/`            |
+| `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`      | optional, only read by `pnpm admin:create`                               |
 
 There is no `SESSION_SECRET`: sessions are random opaque tokens and only their SHA-256 hash is stored, so no
 signing key is needed.
@@ -154,29 +156,38 @@ Forgotten password: `pnpm admin:create --email you@company.com --reset-password`
 | `20260930152513_driver_last_name_optional` | `Driver.lastName` becomes optional                                                                                                                                                                                                                                            |
 | `20261001014714_quote_callback_requests`   | Website leads: `QuoteRequest.kind` (`QUOTE` / `CALLBACK`) and `preferredTime` for "call me back" requests; `email` and `serviceType` become optional (call-backs only need a name and phone)                                                                                  |
 | `20261001060653_quote_shipment_details`    | Website quote form: `QuoteRequest.equipment`, `loadCount` and `readyDate` (date only); the website no longer sends call-back requests (earlier ones stay readable)                                                                                                            |
+| `20261004151740_invoicing`                 | Client invoices: `LoadCharge` (extra charges billed to the client per load), `CompanySettings.invoicePaymentTermsDays` / `invoiceNotes`, `Client.paymentTermsDays` (overrides the company default)                                                                            |
+| `20261004170000_three_load_statuses`       | `LoadStatus` reduced to `CREATED` / `IN_PROGRESS` / `COMPLETED` (old in-between statuses → `IN_PROGRESS`); cancelled loads without documents deleted, with documents → `COMPLETED`; merged status-history steps removed (audit log keeps the detail). Hand-written SQL        |
+| `20261004160638_company_scac_duns`         | `CompanySettings.scacCode` and `dunsNumber` (printed on documents; filled by `pnpm company:defaults`)                                                                                                                                                                         |
+| `20261004161846_lead_source`               | Leads: `QuoteRequest.source` (`WEBSITE` / `STAFF`) and `createdById`, so staff can add phone and email leads next to website requests                                                                                                                                         |
 
 ## Using the system
 
+Day-to-day staff guide (dashboard, load workflow, which document goes to whom, roles, recommended practices):
+[docs/TMS-GUIDE.md](docs/TMS-GUIDE.md).
+
 1. **Settings** (admin): complete phone, email, MC/DOT, upload the logo (PNG/JPG), and paste the legally reviewed
-   carrier terms / customer terms / BOL instructions. Add the other staff users here.
+   carrier terms / client terms / BOL instructions. Add the other staff users here.
 2. **Loads → Create load → Drayage/OTR.** Pick the client (or create it inline with **New client**), the carrier
    (**New carrier** inline) and driver (**Add driver** inline — truck/trailer fill in automatically). Previously used
    pickup/delivery facilities can be re-used with **Use saved location**. Enter client rate and carrier rate; the
    gross margin is shown live. Only client and load date are required.
-3. On the load page, **Documents**: generate the Carrier Load Confirmation (carrier rate only), Customer Rate
-   Confirmation (client rate only) and Bill of Lading (no rates). **Regenerate** creates v2, v3… — earlier versions
-   are kept. **Upload POD / COD / other** stores signed paperwork (PDF/JPG/PNG).
-4. Move the load along with **Mark …** / **Change status**; every change appears in the timeline.
+3. On the load page, **Documents**: **View** or **Download** the Carrier Load Confirmation (carrier rate only), Client
+   Rate Confirmation (client rate only), Bill of Lading (no rates) and the client Invoice (`INV-<load #>`, client rate
+   - extra charges). Each PDF is built from the load's current data; nothing is stored.
+4. Move the load along with **Mark In progress / Completed** or **Change status**; every change appears in the
+   timeline. A Created load that is cancelled is **deleted** instead.
 5. Find any load later from **Loads** (search by load #, container #, client, carrier, driver, city; filter by
-   status, type, client, carrier, dates) or **Documents**.
+   status, type, client, carrier, dates).
 
 ## Documents & rate privacy
 
-| Document                        | Rates shown  | Never contains                                                 |
-| ------------------------------- | ------------ | -------------------------------------------------------------- |
-| Carrier Load Confirmation       | carrier rate | client rate, client identity/reference, margin, internal notes |
-| Customer Rate Confirmation      | client rate  | carrier rate, carrier/driver, margin, internal notes           |
-| Bill of Lading (`BOL-<load #>`) | none         | any rate, margin, internal notes                               |
+| Document                        | Rates shown                 | Never contains                                                 |
+| ------------------------------- | --------------------------- | -------------------------------------------------------------- |
+| Carrier Load Confirmation       | carrier rate                | client rate, client identity/reference, margin, internal notes |
+| Client Rate Confirmation        | client rate                 | carrier rate, carrier/driver, margin, internal notes           |
+| Invoice (`INV-<load #>`)        | client rate + extra charges | carrier rate, carrier/driver, margin, internal notes           |
+| Bill of Lading (`BOL-<load #>`) | none                        | any rate, client identity/reference, margin, internal notes    |
 
 Enforced in three layers: a per-document database `select` that does not fetch forbidden fields
 (`src/lib/pdf/mappings/selects.ts`), typed DTO mappings (`src/lib/pdf/mappings/*`), and tests that search the
@@ -184,17 +195,21 @@ serialized DTOs for leaked values (`tests/unit/pdf-documents.test.ts`). Rate-bea
 by users with the `financials:read` permission.
 
 **Changing a layout** only touches `src/lib/pdf/<document>/template.tsx` and the shared components in
-`src/lib/pdf/components/` — never load logic. Render the three documents from fixture data for visual review with:
+`src/lib/pdf/components/` — never load logic. Render the documents from fixture data for visual review with:
 
 ```bash
 PDF_OUTPUT_DIR=/tmp/pdf-preview pnpm vitest run tests/unit/pdf-documents.test.ts
 ```
 
-**Storage:** files live under `DOCUMENT_STORAGE_PATH` (`loads/<load #>/generated/<load #>-<type>-v<N>.pdf`,
-`loads/<load #>/uploads/<random>.<ext>`), never in `public/`. Downloads go through
-`/api/documents/<id>/download`, which checks the session and permissions, looks the file up by database id and
-verifies the path stays inside the storage root. Uploads are identified by content (magic bytes), not by name or
-browser-supplied type. Deleting a document hides it (reason + audit entry); the file is retained.
+**Generated on demand, never stored.** `GET /api/loads/<id>/documents/<carrier-confirmation|client-confirmation|bol|invoice>`
+checks the session and the document-type permission, builds the PDF from the load's current data and streams it
+(`?disposition=inline` to view). Nothing is written to disk or Blob storage; each download is recorded in the audit
+log (`DOCUMENT_GENERATED`). File names: `<load #>-carrier-load-confirmation.pdf`, `<load #>-client-rate-confirmation.pdf`,
+`BOL-<load #>.pdf`, `INV-<load #>.pdf`.
+
+**Storage** (`DOCUMENT_STORAGE_PATH` or private Vercel Blob) now holds only the company logo uploaded in Settings.
+`Document` rows and files created before 2026-10-04 (versioned PDFs, POD uploads) are kept untouched but are no
+longer shown in the portal.
 
 ## Git workflow
 
@@ -236,6 +251,7 @@ the authenticated `/api/documents/[id]/download` route.
    Changes to Vercel environment variables require a new deployment.
 6. **Deploy**, then create the first admin from your machine against the production database:
    `DATABASE_URL=<production direct URL> pnpm admin:create --email … --name "…"`.
+   Then fill the company details once: `DATABASE_URL=<production direct URL> pnpm company:defaults`.
 
 Migrations run on **production** builds by default. Preview builds skip migrations unless explicitly enabled.
 To migrate previews too, give them a separate database (e.g. Neon preview branches) and set

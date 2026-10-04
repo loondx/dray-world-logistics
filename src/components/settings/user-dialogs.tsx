@@ -89,7 +89,7 @@ export function ResetPasswordDialog({ userId, name }: { userId: string; name: st
       <QuickCreateDialog
         open={open}
         onOpenChange={setOpen}
-        title={`Reset password — ${name}`}
+        title={`Reset password: ${name}`}
         description="The user will be signed out of all devices."
       >
         <form onSubmit={onSubmit} className="grid gap-3" noValidate>

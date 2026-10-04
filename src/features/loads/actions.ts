@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { formDataToObject, success, validationFailure, type ActionResult } from "@/lib/forms/action-result";
 import { safeAction } from "@/server/actions/safe-action";
 import { can, requirePermission } from "@/server/auth/guards";
-import { changeLoadStatus, createLoad, updateLoad } from "@/server/services/load.service";
+import { changeLoadStatus, createLoad, deleteLoad, updateLoad } from "@/server/services/load.service";
 
 import { loadSchema, statusChangeSchema } from "./schemas";
 import { LOAD_STATUS_LABELS } from "./status";
@@ -67,4 +68,17 @@ export async function changeLoadStatusAction(
     revalidatePath("/dashboard");
     return success(null, `Status changed to ${LOAD_STATUS_LABELS[parsed.data.status]}.`);
   });
+}
+
+export async function deleteLoadAction(loadId: string): Promise<ActionResult<null>> {
+  const result = await safeAction("deleteLoad", async () => {
+    const user = await requirePermission("loads:write");
+    const { loadNumber } = await deleteLoad(loadId, user.id);
+    revalidatePath("/loads");
+    revalidatePath("/dashboard");
+    return success(null, `Load #${loadNumber} deleted.`);
+  });
+  // The load page no longer exists: go back to the list.
+  if (result.ok) redirect("/loads");
+  return result;
 }

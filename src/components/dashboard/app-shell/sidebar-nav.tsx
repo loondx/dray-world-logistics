@@ -11,12 +11,15 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 // `allowedHrefs` is computed on the server from the user's permissions; the
-// server still enforces access on every route.
+// server still enforces access on every route. `badges` maps an href to a count
+// shown next to it (e.g. new leads).
 export function SidebarNav({
   allowedHrefs,
+  badges = {},
   onNavigate,
 }: {
   allowedHrefs: string[];
+  badges?: Record<string, number>;
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
@@ -52,6 +55,12 @@ export function SidebarNav({
                     >
                       <Icon className="size-4 shrink-0" aria-hidden="true" />
                       {item.label}
+                      {badges[item.href] ? (
+                        <span className="ml-auto rounded-full bg-brand-cyan px-1.5 text-[11px] leading-5 font-semibold text-brand-navy">
+                          {badges[item.href]}
+                          <span className="sr-only"> new</span>
+                        </span>
+                      ) : null}
                     </Link>
                   </li>
                 );

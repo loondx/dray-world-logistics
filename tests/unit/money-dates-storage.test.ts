@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { formatAppointment, formatDateOnly, parseDateOnly, todayDateOnly } from "@/lib/dates";
 import { calculateMargin, formatMoney, marginPercent, normalizeMoneyInput, sumMoney } from "@/lib/money";
-import { detectFileType, sanitizeDisplayFilename } from "@/lib/storage/file-types";
+import { detectFileType } from "@/lib/storage/file-types";
 import { buildStorageKey, resolveStoragePath, StoragePathError } from "@/lib/storage/paths";
 
 describe("money", () => {
@@ -27,7 +27,7 @@ describe("money", () => {
 
   it("formats USD", () => {
     expect(formatMoney("1850")).toBe("$1,850.00");
-    expect(formatMoney(null)).toBe("—");
+    expect(formatMoney(null)).toBe("-");
     expect(formatMoney("1234567.89")).toBe("$1,234,567.89");
   });
 });
@@ -92,11 +92,5 @@ describe("file type detection", () => {
       "image/png",
     );
     expect(detectFileType(new Uint8Array([0x4d, 0x5a]))).toBeNull();
-  });
-
-  it("sanitises display names", () => {
-    expect(sanitizeDisplayFilename("../../etc/passwd")).toBe("passwd");
-    expect(sanitizeDisplayFilename('C:\\Users\\x\\"pod".pdf')).toBe("pod.pdf");
-    expect(sanitizeDisplayFilename("")).toBe("document");
   });
 });

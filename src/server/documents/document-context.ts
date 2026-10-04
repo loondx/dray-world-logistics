@@ -3,7 +3,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { COMPANY_DEFAULT_PDF_LOGO } from "@/config/company-defaults";
+import { COMPANY_DEFAULT_PDF_LOGO, COMPANY_DEFAULTS } from "@/config/company-defaults";
 import type { CompanySettings } from "@/generated/prisma/client";
 import { formatDateOnly, todayDateOnly } from "@/lib/dates";
 import { detectFileType } from "@/lib/storage/file-types";
@@ -57,24 +57,32 @@ export async function toPdfCompany(settings: CompanySettings): Promise<PdfCompan
     addressLines: addressLines(settings),
     mcNumber: settings.mcNumber,
     dotNumber: settings.dotNumber,
-    phone: settings.phone,
-    email: settings.email,
+    scacCode: settings.scacCode,
+    // Settings win; until a main phone/email is entered there, use the confirmed defaults.
+    phone: settings.phone ?? COMPANY_DEFAULTS.phone,
+    email: settings.email ?? COMPANY_DEFAULTS.email,
     logo: await loadLogo(settings.logoStorageKey),
   };
 }
 
 export async function buildDocumentContext(settings: CompanySettings): Promise<DocumentContext> {
+  const today = todayDateOnly();
   return {
     company: await toPdfCompany(settings),
-    documentDate: formatDateOnly(todayDateOnly()),
+    documentDate: formatDateOnly(today),
+    issueDate: today,
     settings: {
       carrierTerms: settings.carrierTerms,
       shipperTerms: settings.shipperTerms,
       bolTerms: settings.bolTerms,
       bolInstructions: settings.bolInstructions,
       paymentInstructions: settings.paymentInstructions,
-      contactPhone: settings.operationsPhone ?? settings.phone,
-      contactEmail: settings.operationsEmail ?? settings.email,
+      contactPhone: settings.operationsPhone ?? settings.phone ?? COMPANY_DEFAULTS.phone,
+      contactEmail: settings.operationsEmail ?? settings.email ?? COMPANY_DEFAULTS.email,
+      invoicePaymentTermsDays: settings.invoicePaymentTermsDays,
+      invoiceNotes: settings.invoiceNotes,
+      businessNumber: settings.businessNumber,
+      dunsNumber: settings.dunsNumber,
     },
   };
 }

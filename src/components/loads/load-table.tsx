@@ -7,6 +7,7 @@ import { LOAD_TYPE_LABELS } from "@/features/loads/equipment";
 import { formatDateOnlyShort } from "@/lib/dates";
 import { driverFullName, formatCityState } from "@/lib/labels/people";
 import { calculateMargin, formatMoney } from "@/lib/money";
+import { invoiceTotal } from "@/lib/pdf/mappings/invoice";
 import { cn } from "@/lib/utils";
 import type { LoadListItem, LoadSortField } from "@/server/services/load.queries";
 
@@ -85,7 +86,7 @@ export function LoadTable({
           <SortHeader label="Delivery" field="deliveryDate" {...sortProps} />
           {showFinancials ? (
             <>
-              <TableHead className="text-right">Client rate</TableHead>
+              <TableHead className="text-right">Billed</TableHead>
               <TableHead className="text-right">Carrier rate</TableHead>
               <TableHead className="text-right">Margin</TableHead>
             </>
@@ -94,7 +95,9 @@ export function LoadTable({
       </TableHeader>
       <TableBody>
         {loads.map((load) => {
-          const margin = calculateMargin(load.clientRate, load.carrierRate);
+          // Billed = client rate + extra charges (what the client is invoiced).
+          const billed = load.clientRate === null ? null : invoiceTotal(load);
+          const margin = calculateMargin(billed, load.carrierRate);
           return (
             <TableRow key={load.id} className="relative">
               <TableCell className="font-semibold">
@@ -111,24 +114,24 @@ export function LoadTable({
               </TableCell>
               {!compact ? <TableCell>{LOAD_TYPE_LABELS[load.type]}</TableCell> : null}
               <TableCell className="max-w-44 truncate">{load.client.companyName}</TableCell>
-              <TableCell className="font-mono text-xs">{load.containerNumber ?? "—"}</TableCell>
+              <TableCell className="font-mono text-xs">{load.containerNumber ?? "-"}</TableCell>
               <TableCell className="max-w-40 truncate">
-                {formatCityState(load.pickupCity, load.pickupStateProvince) || load.pickupLocationName || "—"}
+                {formatCityState(load.pickupCity, load.pickupStateProvince) || load.pickupLocationName || "-"}
               </TableCell>
               <TableCell className="max-w-40 truncate">
                 {formatCityState(load.deliveryCity, load.deliveryStateProvince) ||
                   load.deliveryLocationName ||
-                  "—"}
+                  "-"}
               </TableCell>
               {!compact ? (
-                <TableCell className="max-w-40 truncate">{load.carrier?.legalName ?? "—"}</TableCell>
+                <TableCell className="max-w-40 truncate">{load.carrier?.legalName ?? "-"}</TableCell>
               ) : null}
-              {!compact ? <TableCell>{load.driver ? driverFullName(load.driver) : "—"}</TableCell> : null}
+              {!compact ? <TableCell>{load.driver ? driverFullName(load.driver) : "-"}</TableCell> : null}
               <TableCell className="whitespace-nowrap">{formatDateOnlyShort(load.pickupDate)}</TableCell>
               <TableCell className="whitespace-nowrap">{formatDateOnlyShort(load.deliveryDate)}</TableCell>
               {showFinancials ? (
                 <>
-                  <TableCell className="text-right tabular-nums">{formatMoney(load.clientRate)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatMoney(billed)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatMoney(load.carrierRate)}</TableCell>
                   <TableCell
                     className={cn(

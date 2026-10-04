@@ -19,7 +19,7 @@ export const LOAD_TYPE_LABELS: Record<LoadType, string> = {
 };
 
 export const LOAD_TYPE_DESCRIPTIONS: Record<LoadType, string> = {
-  DRAYAGE: "Port / rail container moves — import, export, empty returns.",
+  DRAYAGE: "Port / rail container moves: import, export, empty returns.",
   OTR: "Over-the-road truckload between shipper and receiver.",
 };
 

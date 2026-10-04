@@ -21,8 +21,8 @@ export function ShipperRateConfirmationTemplate({ data }: { data: ShipperRateCon
     <PdfPage meta={data.meta} companyName={data.company.name}>
       <PdfHeader company={data.company} title={data.meta.title} summary={data.summary} />
 
-      <PdfSection title="Customer Information">
-        <PdfPartyBlock party={data.customer} />
+      <PdfSection title="Client Information">
+        <PdfPartyBlock party={data.client} />
       </PdfSection>
 
       <PdfSection title="Stops / Actions">
@@ -44,7 +44,7 @@ export function ShipperRateConfirmationTemplate({ data }: { data: ShipperRateCon
       ) : null}
 
       <PdfSignatureBlock
-        title="Customer Acceptance"
+        title="Client Acceptance"
         rows={[
           [
             { label: "Print Name", width: "45%" },

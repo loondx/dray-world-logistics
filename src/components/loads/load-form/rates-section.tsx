@@ -11,7 +11,7 @@ function safeNormalize(value: string): string | null {
   return normalizeMoneyInput(value) ?? null;
 }
 
-// Client rate (what the customer pays) vs carrier rate (what we pay the carrier),
+// Client rate (what the client pays) vs carrier rate (what we pay the carrier),
 // with live gross margin. These two values never appear on the same external document.
 export function RatesSection({
   defaults,
@@ -36,7 +36,7 @@ export function RatesSection({
           placeholder="0.00"
           value={clientRate}
           onChange={(event) => setClientRate(event.target.value)}
-          hint="Shown only on the customer rate confirmation."
+          hint="Shown only on the client rate confirmation."
           error={fieldError("clientRate")}
         />
         <TextField
@@ -58,7 +58,7 @@ export function RatesSection({
             margin?.isNegative() ? "text-destructive" : margin ? "text-emerald-700" : "text-muted-foreground",
           )}
         >
-          {margin ? formatMoney(margin) : "—"}
+          {margin ? formatMoney(margin) : "-"}
           {percent ? <span className="ml-1.5 text-xs font-normal">({percent.toFixed(1)}%)</span> : null}
         </span>
       </div>

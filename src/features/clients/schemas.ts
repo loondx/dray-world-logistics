@@ -4,6 +4,7 @@ import { addressFields } from "@/lib/validation/address";
 import {
   optionalEmail,
   optionalLongText,
+  optionalPaymentTermsDays,
   optionalPhone,
   optionalText,
   requiredText,
@@ -17,6 +18,7 @@ export const clientSchema = z.object({
   ...addressFields,
   mcNumber: optionalText(30),
   dotNumber: optionalText(30),
+  paymentTermsDays: optionalPaymentTermsDays,
   notes: optionalLongText,
 });
 

@@ -1,4 +1,4 @@
-import { ArrowRight, CircleCheck, Mail, MapPin, Phone } from "lucide-react";
+import { CircleCheck, Mail, MapPin, Phone } from "lucide-react";
 
 import { QuoteForm } from "@/components/marketing/quote-form";
 import { Reveal } from "@/components/marketing/reveal";
@@ -6,11 +6,12 @@ import { isDatabaseEnabled } from "@/lib/database-enabled";
 import { WHY_POINTS } from "@/config/marketing-content";
 import type { PublicCompanyProfile } from "@/server/services/company-settings.service";
 
+const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;
+
 export function QuoteSection({ company }: { company: PublicCompanyProfile }) {
   const cityLine = [`${company.city}, ${company.stateProvince}`, company.postalCode]
     .filter(Boolean)
     .join(" ");
-  const tel = company.phone ? `tel:${company.phone.replace(/[^\d+]/g, "")}` : null;
   return (
     <section id="quote" aria-labelledby="quote-title" className="scroll-mt-16 bg-[#eef4fb]">
       <div
@@ -26,31 +27,39 @@ export function QuoteSection({ company }: { company: PublicCompanyProfile }) {
             Tell us what needs to move and where. We&apos;ll come back to you with a clear, all-in quote.
           </p>
 
-          <ul className="mt-7 grid gap-2.5">
-            {tel ? (
-              <li>
-                <a href={tel} className="contact-option">
-                  <Phone className="size-5 text-brand-blue" aria-hidden="true" />
-                  <span>
-                    <span className="block font-semibold text-brand-navy">Call us</span>
-                    <span className="block text-sm break-all text-slate-500">{company.phone}</span>
-                  </span>
-                  <ArrowRight className="ml-auto size-4 text-slate-400" aria-hidden="true" />
-                </a>
+          <h3 className="mt-7 text-sm font-semibold tracking-wide text-slate-500 uppercase">
+            Talk to our team
+          </h3>
+          <ul className="mt-3 grid gap-3">
+            {company.contacts.map((person) => (
+              <li
+                key={person.email}
+                className="rounded-[0.9rem] bg-white p-4 shadow-[0_0_0_1px_rgb(15_22_49/0.08)]"
+              >
+                <p className="font-semibold text-brand-navy">{person.name}</p>
+                <p className="text-xs font-medium tracking-wide text-brand-blue uppercase">{person.title}</p>
+                <div className="mt-3 grid gap-1.5 text-sm">
+                  <a
+                    href={telHref(person.phone)}
+                    className="flex items-center gap-2 text-slate-700 hover:text-brand-blue"
+                    aria-label={`Call ${person.name}, ${person.phoneLabel.toLowerCase()} ${person.phone}`}
+                  >
+                    <Phone className="size-4 shrink-0 text-brand-blue" aria-hidden="true" />
+                    <span>
+                      <span className="text-slate-500">{person.phoneLabel}: </span>
+                      {person.phone}
+                    </span>
+                  </a>
+                  <a
+                    href={`mailto:${person.email}`}
+                    className="flex items-center gap-2 break-all text-slate-700 hover:text-brand-blue"
+                  >
+                    <Mail className="size-4 shrink-0 text-brand-blue" aria-hidden="true" />
+                    {person.email}
+                  </a>
+                </div>
               </li>
-            ) : null}
-            {company.email ? (
-              <li>
-                <a href={`mailto:${company.email}`} className="contact-option">
-                  <Mail className="size-5 text-brand-blue" aria-hidden="true" />
-                  <span>
-                    <span className="block font-semibold text-brand-navy">Email us</span>
-                    <span className="block text-sm break-all text-slate-500">{company.email}</span>
-                  </span>
-                  <ArrowRight className="ml-auto size-4 text-slate-400" aria-hidden="true" />
-                </a>
-              </li>
-            ) : null}
+            ))}
           </ul>
 
           <ul className="mt-8 grid gap-2.5">

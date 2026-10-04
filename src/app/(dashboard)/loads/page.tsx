@@ -92,7 +92,7 @@ export default async function LoadsPage({ searchParams }: PageProps<"/loads">) {
           <FilterLabel htmlFor="f-status">Status</FilterLabel>
           <NativeSelect id="f-status" name="status" defaultValue={filters.status ?? ""}>
             <option value="">All statuses</option>
-            <option value="ACTIVE">Active (in progress)</option>
+            <option value="ACTIVE">Open (Created + In progress)</option>
             {LOAD_STATUS_ORDER.map((status) => (
               <option key={status} value={status}>
                 {LOAD_STATUS_LABELS[status]}

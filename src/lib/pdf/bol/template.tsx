@@ -4,7 +4,7 @@ import { PdfHeader } from "../components/pdf-header";
 import { PdfPage } from "../components/pdf-page";
 import {
   PdfParagraph,
-  PdfPartyColumns,
+  PdfPartyBlock,
   PdfSection,
   PdfSignatureBlock,
   PdfTerms,
@@ -64,12 +64,9 @@ export function BillOfLadingTemplate({ data }: { data: BillOfLadingDTO }) {
     <PdfPage meta={data.meta} companyName={data.company.name}>
       <PdfHeader company={data.company} title={data.meta.title} summary={data.summary} />
 
-      <PdfPartyColumns
-        columns={[
-          { title: "Customer Information", party: data.customer },
-          { title: "Carrier", party: data.carrier },
-        ]}
-      />
+      <PdfSection title="Carrier Information">
+        <PdfPartyBlock party={data.carrier} extra={data.driver} />
+      </PdfSection>
 
       <PdfSection title="Stops / Actions">
         <PdfStopsTable
@@ -85,7 +82,7 @@ export function BillOfLadingTemplate({ data }: { data: BillOfLadingDTO }) {
       <PdfSignatureBlock
         rows={[
           [
-            { label: "Driver / Carrier — Print Name", width: "45%" },
+            { label: "Driver / Carrier Print Name", width: "45%" },
             { label: "Signature", width: "40%" },
             { label: "Date", width: "15%" },
           ],

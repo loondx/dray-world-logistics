@@ -87,7 +87,7 @@ export default async function SettingsPage() {
 
       <Panel title="Document terms & instructions">
         <p className="mb-3 text-sm text-muted-foreground">
-          These texts are printed on generated documents. Enter your final, legally reviewed wording — the
+          These texts are printed on generated documents. Enter your final, legally reviewed wording. The
           system does not add any terms of its own. Changes apply to documents generated from now on; earlier
           versions are kept as they were.
         </p>

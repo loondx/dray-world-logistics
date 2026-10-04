@@ -6,7 +6,8 @@
 //
 //   CarrierRateConfirmationDTO   carrier rate only   — never client rate, margin, client identity, internal notes
 //   ShipperRateConfirmationDTO   client rate only    — never carrier rate, carrier identity, margin, internal notes
-//   BillOfLadingDTO              no rates at all     — never internal notes
+//   InvoiceDTO                   client rate + charges — never carrier rate, carrier identity, margin, internal notes
+//   BillOfLadingDTO              no rates at all     — never client identity, internal notes
 
 export type PdfLogo = { data: Buffer; format: "png" | "jpg" };
 
@@ -15,6 +16,7 @@ export type PdfCompany = {
   addressLines: string[];
   mcNumber: string | null;
   dotNumber: string | null;
+  scacCode: string | null;
   phone: string | null;
   email: string | null;
   logo: PdfLogo | null;
@@ -75,7 +77,7 @@ export type ShipperRateConfirmationDTO = {
   meta: PdfDocumentMeta;
   company: PdfCompany;
   summary: PdfField[];
-  customer: PdfParty;
+  client: PdfParty;
   stops: PdfStop[];
   payItems: PdfPayItem[];
   total: string;
@@ -90,8 +92,8 @@ export type BillOfLadingDTO = {
   meta: PdfDocumentMeta;
   company: PdfCompany;
   summary: PdfField[];
-  customer: PdfParty;
   carrier: PdfParty;
+  driver: PdfField[];
   stops: PdfStop[];
   cargo: string | null;
   specialInstructions: string | null;
@@ -99,4 +101,27 @@ export type BillOfLadingDTO = {
   terms: string[];
 };
 
-export type GeneratedDocumentDTO = CarrierRateConfirmationDTO | ShipperRateConfirmationDTO | BillOfLadingDTO;
+export type InvoiceLine = { description: string; details: string; amount: string };
+
+export type InvoiceDTO = {
+  kind: "INVOICE";
+  meta: PdfDocumentMeta;
+  company: PdfCompany;
+  invoiceNumber: string;
+  invoiceDate: string;
+  terms: string;
+  termsSentence: string;
+  dueDate: string;
+  // Kept simple: name, address, then "Attn: …" and email.
+  billTo: { name: string; addressLines: string[]; contactLines: string[] };
+  shipment: PdfField[];
+  lines: InvoiceLine[];
+  total: string;
+  paymentInstructions: string | null;
+  businessNumber: string | null;
+  dunsNumber: string | null;
+  notes: string[];
+};
+
+export type GeneratedDocumentDTO =
+  CarrierRateConfirmationDTO | ShipperRateConfirmationDTO | BillOfLadingDTO | InvoiceDTO;

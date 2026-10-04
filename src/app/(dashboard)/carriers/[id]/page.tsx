@@ -104,10 +104,10 @@ export default async function CarrierDetailPage({ params }: PageProps<"/carriers
                         </Badge>
                       ) : null}
                     </TableCell>
-                    <TableCell>{driver.phone ?? "—"}</TableCell>
-                    <TableCell className="hidden md:table-cell">{driver.email ?? "—"}</TableCell>
-                    <TableCell>{driver.truckNumber ?? "—"}</TableCell>
-                    <TableCell>{driver.trailerNumber ?? "—"}</TableCell>
+                    <TableCell>{driver.phone ?? "-"}</TableCell>
+                    <TableCell className="hidden md:table-cell">{driver.email ?? "-"}</TableCell>
+                    <TableCell>{driver.truckNumber ?? "-"}</TableCell>
+                    <TableCell>{driver.trailerNumber ?? "-"}</TableCell>
                     <TableCell className="text-right">
                       {canWrite ? (
                         <div className="flex justify-end gap-1">

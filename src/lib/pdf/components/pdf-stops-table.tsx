@@ -52,7 +52,7 @@ export function PdfStopsTable({
                 ))}
               </View>
               <View style={[pdf.cell, { width: `${(30 / 95) * 100}%` }]}>
-                {stop.contact ? <Text>{stop.contact}</Text> : <Text style={pdf.muted}>—</Text>}
+                {stop.contact ? <Text>{stop.contact}</Text> : <Text style={pdf.muted}>-</Text>}
               </View>
             </View>
             {stop.references ? (

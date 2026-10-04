@@ -1,5 +1,5 @@
 import {
-  FileText,
+  Inbox,
   LayoutDashboard,
   Package,
   Settings,
@@ -25,7 +25,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, permission: "loads:read" },
       { href: "/loads", label: "Loads", icon: Package, permission: "loads:read" },
-      { href: "/documents", label: "Documents", icon: FileText, permission: "documents:read" },
+      { href: "/quotes", label: "Leads", icon: Inbox, permission: "quotes:read" },
     ],
   },
   {

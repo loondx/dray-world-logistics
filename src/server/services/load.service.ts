@@ -40,7 +40,7 @@ async function assertParties(
 export async function createLoad(input: LoadInput, options: LoadWriteOptions) {
   // Users without `financials:write` cannot set rates.
   const data = options.canWriteRates ? input : { ...input, clientRate: null, carrierRate: null };
-  const status: LoadStatus = input.carrierId ? "ASSIGNED" : "CREATED";
+  const status: LoadStatus = "CREATED";
 
   // Load, initial status history and audit entry commit together or not at all.
   return db.$transaction(async (tx) => {
@@ -140,10 +140,6 @@ export async function updateLoad(id: string, input: LoadInput, options: LoadWrit
       }
     }
 
-    // Assigning a carrier to a brand-new load moves it to ASSIGNED automatically.
-    if (existing.status === "CREATED" && input.carrierId) {
-      await applyStatusChange(tx, id, existing.status, "ASSIGNED", options.userId, "Carrier assigned");
-    }
     return load;
   });
 }
@@ -191,5 +187,36 @@ export async function changeLoadStatus(
     if (load.status === newStatus) throw new UserFacingError("The load already has this status.");
     await applyStatusChange(tx, loadId, load.status, newStatus, userId, notes);
     return { previousStatus: load.status };
+  });
+}
+
+// There is no "cancelled" status: a load that never started is deleted instead.
+// Only a Created load with no documents (not even deleted ones) qualifies, so no
+// paperwork or history of a real move can ever be lost. The audit entry keeps a record.
+export async function deleteLoad(loadId: string, userId: string): Promise<{ loadNumber: number }> {
+  return db.$transaction(async (tx) => {
+    const load = await tx.load.findUnique({
+      where: { id: loadId },
+      select: { loadNumber: true, status: true, clientId: true, _count: { select: { documents: true } } },
+    });
+    if (!load) throw new UserFacingError("This load no longer exists.");
+    if (load.status !== "CREATED")
+      throw new UserFacingError("Only loads that have not started (status Created) can be deleted.");
+    if (load._count.documents > 0)
+      throw new UserFacingError("This load has documents, so it cannot be deleted.");
+
+    await tx.loadStatusHistory.deleteMany({ where: { loadId } });
+    await tx.load.delete({ where: { id: loadId } }); // extra charges cascade
+    await recordAudit(
+      {
+        action: AUDIT_ACTIONS.LOAD_DELETED,
+        entityType: AUDIT_ENTITIES.LOAD,
+        entityId: loadId,
+        userId,
+        metadata: { loadNumber: load.loadNumber, clientId: load.clientId },
+      },
+      tx,
+    );
+    return { loadNumber: load.loadNumber };
   });
 }

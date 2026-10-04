@@ -21,7 +21,6 @@ export const config = {
     "/clients/:path*",
     "/carriers/:path*",
     "/drivers/:path*",
-    "/documents/:path*",
     "/quotes/:path*",
     "/settings/:path*",
   ],

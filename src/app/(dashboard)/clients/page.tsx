@@ -31,7 +31,7 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
       <PageHeader
         title="Clients"
-        description="Shippers and customers you move freight for."
+        description="Companies you move freight for."
         actions={
           can(user, "masterdata:write") ? (
             <Button asChild>
@@ -100,11 +100,11 @@ export default async function ClientsPage({ searchParams }: PageProps<"/clients"
                       </Badge>
                     ) : null}
                   </TableCell>
-                  <TableCell>{client.contactName ?? "—"}</TableCell>
-                  <TableCell className="hidden md:table-cell">{client.phone ?? "—"}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{client.email ?? "—"}</TableCell>
+                  <TableCell>{client.contactName ?? "-"}</TableCell>
+                  <TableCell className="hidden md:table-cell">{client.phone ?? "-"}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{client.email ?? "-"}</TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    {[client.city, client.stateProvince].filter(Boolean).join(", ") || "—"}
+                    {[client.city, client.stateProvince].filter(Boolean).join(", ") || "-"}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{client.loadCount}</TableCell>
                 </TableRow>

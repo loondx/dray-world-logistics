@@ -10,8 +10,3 @@ export function canViewDocumentType(role: Role, type: DocumentType): boolean {
   if (!hasPermission(role, "documents:read")) return false;
   return !FINANCIAL_DOCUMENT_TYPES.includes(type) || hasPermission(role, "financials:read");
 }
-
-export function canWriteDocumentType(role: Role, type: DocumentType): boolean {
-  if (!hasPermission(role, "documents:write")) return false;
-  return !FINANCIAL_DOCUMENT_TYPES.includes(type) || hasPermission(role, "financials:read");
-}

@@ -12,6 +12,7 @@ import {
   optionalTime,
   requiredDateOnly,
   requiredId,
+  requiredText,
 } from "@/lib/validation/fields";
 
 const blankToUndefined = (value: unknown) => (value === "" ? undefined : value);
@@ -111,3 +112,17 @@ export const statusChangeSchema = z.object({
   status: z.enum(LoadStatus, { error: "Select a status." }),
   notes: optionalText(500),
 });
+
+// Extra charge billed to the client (printed on the invoice only).
+export const loadChargeSchema = z.object({
+  description: requiredText("Description", 120),
+  amount: optionalMoney.transform((value, ctx) => {
+    if (value === null || value === "0.00") {
+      ctx.addIssue({ code: "custom", message: "Enter an amount above zero." });
+      return z.NEVER;
+    }
+    return value;
+  }),
+});
+
+export type LoadChargeInput = z.infer<typeof loadChargeSchema>;

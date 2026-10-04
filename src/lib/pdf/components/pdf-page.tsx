@@ -5,13 +5,16 @@ import { PAGE_MARGIN, PAGE_WIDTH, PDF_COLORS, pdf } from "../styles";
 import type { PdfDocumentMeta } from "../types";
 
 // US Letter page with the standard footer: "Page X out of Y | Load #N | Company".
+// `footerNote` replaces the load/company part (the invoice uses its own closing line).
 export function PdfPage({
   meta,
   companyName,
+  footerNote,
   children,
 }: {
   meta: PdfDocumentMeta;
   companyName: string;
+  footerNote?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -40,9 +43,18 @@ export function PdfPage({
             color: PDF_COLORS.muted,
           }}
         >
-          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} out of ${totalPages}`} />
-          <Text>Load #{meta.loadNumber}</Text>
-          <Text>{companyName}</Text>
+          {footerNote ? (
+            <>
+              {footerNote}
+              <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+            </>
+          ) : (
+            <>
+              <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} out of ${totalPages}`} />
+              <Text>Load #{meta.loadNumber}</Text>
+              <Text>{companyName}</Text>
+            </>
+          )}
         </View>
       </Page>
     </Document>

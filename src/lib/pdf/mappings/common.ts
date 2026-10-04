@@ -9,6 +9,8 @@ import type { PdfCompany, PdfField, PdfStop } from "../types";
 export type DocumentContext = {
   company: PdfCompany;
   documentDate: string;
+  // The same day as a date-only value (UTC midnight), for due-date arithmetic.
+  issueDate: Date;
   settings: {
     carrierTerms: string | null;
     shipperTerms: string | null;
@@ -17,6 +19,10 @@ export type DocumentContext = {
     paymentInstructions: string | null;
     contactPhone: string | null;
     contactEmail: string | null;
+    invoicePaymentTermsDays: number | null;
+    invoiceNotes: string | null;
+    businessNumber: string | null;
+    dunsNumber: string | null;
   };
 };
 
@@ -110,9 +116,10 @@ export function joinReferences(entries: [label: string, value: string | null | u
   return parts.length ? parts.join("   ") : null;
 }
 
-export function contactLine(settings: DocumentContext["settings"]): string | null {
+export function contactLine(
+  settings: DocumentContext["settings"],
+  prefix = "Please call immediately with any questions, concerns, or problems",
+): string | null {
   const parts = [settings.contactPhone, settings.contactEmail].filter(Boolean);
-  return parts.length
-    ? `Please call immediately with any questions, concerns, or problems: ${parts.join(" · ")}`
-    : null;
+  return parts.length ? `${prefix}: ${parts.join(" · ")}` : null;
 }

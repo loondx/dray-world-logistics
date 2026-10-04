@@ -20,9 +20,9 @@ export function bolNumber(loadNumber: number): string {
   return `BOL-${loadNumber}`;
 }
 
-// Maps a rate-free load selection to the bill of lading.
+// Maps a rate-free, client-free load selection to the bill of lading (carrier and driver only).
 export function toBillOfLadingDTO(load: BillOfLadingSource, context: DocumentContext): BillOfLadingDTO {
-  const { client, carrier } = load;
+  const { carrier } = load;
   const weight = formatWeight(load.weight, load.weightUnit);
 
   return {
@@ -44,30 +44,24 @@ export function toBillOfLadingDTO(load: BillOfLadingSource, context: DocumentCon
       ["Container #", load.containerNumber],
       ["Seal #", load.sealNumber],
     ]),
-    customer: {
-      name: client.companyName,
-      addressLines: addressLines(client),
-      phone: client.phone,
-      details: fields([
-        ["Primary Contact", client.contactName],
-        ["Phone", client.phone],
-        ["Ref #", load.customerReference],
-      ]),
-    },
     carrier: carrier
       ? {
           name: carrier.legalName,
-          addressLines: [],
+          addressLines: addressLines(carrier),
           phone: carrier.phone,
           details: fields([
             ["MC Number", carrier.mcNumber],
             ["DOT Number", carrier.dotNumber],
-            ["Driver", load.driver ? driverFullName(load.driver) : null],
-            ["Truck #", load.truckNumber],
-            ["Trailer #", load.trailerNumber],
+            ["Primary Contact", carrier.contactPerson],
           ]),
         }
       : { name: "Carrier not assigned", addressLines: [], phone: null, details: [] },
+    driver: fields([
+      ["Driver", load.driver ? driverFullName(load.driver) : null],
+      ["Cell", load.driver?.phone],
+      ["Truck #", load.truckNumber],
+      ["Trailer #", load.trailerNumber],
+    ]),
     stops: buildStops(
       load,
       joinReferences([

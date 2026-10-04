@@ -84,9 +84,9 @@ export default async function DriversPage({ searchParams }: PageProps<"/drivers"
                       {driver.carrier.legalName}
                     </Link>
                   </TableCell>
-                  <TableCell>{driver.phone ?? "—"}</TableCell>
-                  <TableCell>{driver.truckNumber ?? "—"}</TableCell>
-                  <TableCell>{driver.trailerNumber ?? "—"}</TableCell>
+                  <TableCell>{driver.phone ?? "-"}</TableCell>
+                  <TableCell>{driver.truckNumber ?? "-"}</TableCell>
+                  <TableCell>{driver.trailerNumber ?? "-"}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     <Link href={`/loads?driver=${driver.id}`} className="hover:underline">
                       {driver.loadCount}

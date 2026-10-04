@@ -7,6 +7,19 @@ import type { PdfCompany, PdfField } from "../types";
 const LOGO_WIDTH = 96;
 const LOGO_HEIGHT = 60;
 
+// "MC 1551033 · USDOT 4078507 · SCAC DRBO" (only the numbers that are set). Non-breaking
+// spaces keep each code with its number when the line wraps.
+export function registrationLine(
+  company: Pick<PdfCompany, "mcNumber" | "dotNumber" | "scacCode">,
+): string | null {
+  const parts = [
+    company.mcNumber ? `MC\u00a0${company.mcNumber}` : null,
+    company.dotNumber ? `USDOT\u00a0${company.dotNumber}` : null,
+    company.scacCode ? `SCAC\u00a0${company.scacCode}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join("  ·  ") : null;
+}
+
 // Letterhead. Left: logo beside the company identity (name, address, MC/DOT, contact).
 // Right: document title and key facts — same arrangement as the reference documents.
 // A navy rule with a cyan accent (logo colours) separates it from the body.
@@ -20,6 +33,7 @@ export function PdfHeader({
   summary: PdfField[];
 }) {
   const contact = [company.phone ? `Phone: ${company.phone}` : null, company.email].filter(Boolean);
+  const registrations = registrationLine(company);
 
   return (
     <View>
@@ -56,22 +70,8 @@ export function PdfHeader({
                 {line}
               </Text>
             ))}
-            {company.mcNumber || company.dotNumber ? (
-              <Text style={{ fontSize: 9, lineHeight: 1.3, marginTop: 2 }}>
-                {company.mcNumber ? (
-                  <>
-                    <Text style={pdf.bold}>MC: </Text>
-                    {company.mcNumber}
-                    {company.dotNumber ? "   " : ""}
-                  </>
-                ) : null}
-                {company.dotNumber ? (
-                  <>
-                    <Text style={pdf.bold}>DOT: </Text>
-                    {company.dotNumber}
-                  </>
-                ) : null}
-              </Text>
+            {registrations ? (
+              <Text style={{ fontSize: 8.5, lineHeight: 1.3, marginTop: 2 }}>{registrations}</Text>
             ) : null}
             {contact.length ? (
               <Text style={{ fontSize: 9, lineHeight: 1.3, color: PDF_COLORS.muted }}>

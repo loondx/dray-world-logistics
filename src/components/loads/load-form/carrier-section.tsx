@@ -175,7 +175,7 @@ export function CarrierSection({
       <QuickCreateDialog
         open={dialog === "driver"}
         onOpenChange={(open) => setDialog(open ? "driver" : null)}
-        title={`New driver${carrier ? ` — ${carrier.legalName}` : ""}`}
+        title={`New driver${carrier ? ` for ${carrier.legalName}` : ""}`}
       >
         {carrierId ? (
           <DriverForm

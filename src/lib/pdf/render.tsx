@@ -2,6 +2,7 @@ import { Font, renderToBuffer } from "@react-pdf/renderer";
 
 import { BillOfLadingTemplate } from "./bol/template";
 import { CarrierRateConfirmationTemplate } from "./carrier-rate-confirmation/template";
+import { InvoiceTemplate } from "./invoice/template";
 import { ShipperRateConfirmationTemplate } from "./shipper-rate-confirmation/template";
 import type { GeneratedDocumentDTO } from "./types";
 
@@ -17,5 +18,7 @@ export function renderPdf(dto: GeneratedDocumentDTO): Promise<Buffer> {
       return renderToBuffer(<ShipperRateConfirmationTemplate data={dto} />);
     case "BOL":
       return renderToBuffer(<BillOfLadingTemplate data={dto} />);
+    case "INVOICE":
+      return renderToBuffer(<InvoiceTemplate data={dto} />);
   }
 }

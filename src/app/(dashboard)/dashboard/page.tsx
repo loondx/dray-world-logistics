@@ -1,94 +1,54 @@
-import { FileText, Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
 
+import { AttentionList } from "@/components/dashboard/attention-list";
+import { ColumnChart } from "@/components/dashboard/charts";
 import { Panel } from "@/components/dashboard/description-list";
+import { EmptyState } from "@/components/dashboard/empty-state";
 import { PageHeader } from "@/components/dashboard/page-header";
-import { LoadTable } from "@/components/loads/load-table";
+import { ScheduleList } from "@/components/dashboard/schedule-list";
 import { Button } from "@/components/ui/button";
-import { DOCUMENT_TYPE_LABELS } from "@/features/documents/document-types";
-import { formatTimestamp } from "@/lib/dates";
-import { formatMoney } from "@/lib/money";
+import { todayDateOnly } from "@/lib/dates";
+import { formatMoney, marginPercent } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { can, requirePermission } from "@/server/auth/guards";
-import { listRecentUploads } from "@/server/documents/document.queries";
 import {
+  getAttentionItems,
   getDashboardCounts,
-  getDashboardLists,
-  getMonthFinancials,
+  getMonthlyFinancials,
+  getUpcomingSchedule,
 } from "@/server/services/dashboard.service";
-import type { LoadListItem } from "@/server/services/load.queries";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-function Stat({
-  label,
-  value,
-  href,
-  accent,
-}: {
-  label: string;
-  value: ReactNode;
-  href?: string;
-  accent?: boolean;
-}) {
-  const body = (
-    <>
-      <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div
-        className={cn("mt-1 text-2xl font-bold tabular-nums", accent ? "text-brand-blue" : "text-brand-navy")}
-      >
-        {value}
-      </div>
-    </>
-  );
-  const className = "rounded-lg border bg-card px-4 py-3 transition-colors";
-  return href ? (
+const todayFormat = new Intl.DateTimeFormat("en-US", {
+  weekday: "long",
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const shortMonth = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "UTC" });
+const longMonth = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+const compactMoney = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+// One number, one label, one click to the matching list.
+function Stat({ label, value, hint, href }: { label: string; value: number; hint: string; href: string }) {
+  return (
     <Link
       href={href}
-      className={cn(
-        className,
-        "outline-none hover:border-brand-blue focus-visible:ring-2 focus-visible:ring-ring",
-      )}
+      className="rounded-lg border bg-card px-4 py-3 transition-colors outline-none hover:border-brand-blue focus-visible:ring-2 focus-visible:ring-ring"
     >
-      {body}
+      <div className="text-sm font-medium text-muted-foreground">{label}</div>
+      <div className="mt-1 text-3xl font-bold text-brand-navy">{value}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div>
     </Link>
-  ) : (
-    <div className={className}>{body}</div>
-  );
-}
-
-function LoadsPanel({
-  title,
-  loads,
-  empty,
-  href,
-  showFinancials,
-}: {
-  title: string;
-  loads: LoadListItem[];
-  empty: string;
-  href: string;
-  showFinancials: boolean;
-}) {
-  return (
-    <Panel
-      title={title}
-      actions={
-        <Button asChild size="xs" variant="ghost">
-          <Link href={href}>View all</Link>
-        </Button>
-      }
-    >
-      {loads.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <div className="-m-4 overflow-x-auto">
-          <LoadTable loads={loads} showFinancials={showFinancials} compact />
-        </div>
-      )}
-    </Panel>
   );
 }
 
@@ -96,18 +56,20 @@ export default async function DashboardPage() {
   // Pages authorize independently of the layout: layouts are not re-run on every navigation.
   const user = await requirePermission("loads:read");
   const showFinancials = can(user, "financials:read");
-  const [counts, lists, uploads, financials] = await Promise.all([
+  const [counts, schedule, attention, financials] = await Promise.all([
     getDashboardCounts(),
-    getDashboardLists(),
-    listRecentUploads(),
-    showFinancials ? getMonthFinancials() : Promise.resolve(null),
+    getUpcomingSchedule(),
+    getAttentionItems({ showQuotes: can(user, "quotes:read") }),
+    showFinancials ? getMonthlyFinancials() : Promise.resolve(null),
   ]);
+  const thisMonth = financials?.at(-1);
+  const margin = thisMonth ? marginPercent(thisMonth.revenue, thisMonth.cost) : null;
 
   return (
-    <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
+    <div className="mx-auto flex max-w-[1400px] flex-col gap-4">
       <PageHeader
-        title="Dashboard"
-        description={`Welcome back, ${user.name.split(" ")[0]}.`}
+        title={`Welcome back, ${user.name.split(" ")[0]}`}
+        description={todayFormat.format(todayDateOnly())}
         actions={
           can(user, "loads:write") ? (
             <Button asChild>
@@ -119,81 +81,102 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
-        <Stat label="Total loads" value={counts.total} href="/loads" />
-        <Stat label="Active" value={counts.active} href="/loads?status=ACTIVE" accent />
-        <Stat label="In transit" value={counts.inTransit} href="/loads?status=IN_TRANSIT" />
-        <Stat label="Delivered / docs pending" value={counts.delivered} href="/loads?status=DELIVERED" />
-        <Stat label="Completed" value={counts.completed} href="/loads?status=COMPLETED" />
-        <Stat label="Clients" value={counts.clients} href="/clients" />
-        <Stat label="Carriers" value={counts.carriers} href="/carriers" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat
+          label="Created"
+          value={counts.created}
+          hint="Booked, not started"
+          href="/loads?status=CREATED&sort=pickupDate&dir=asc"
+        />
+        <Stat
+          label="In progress"
+          value={counts.inProgress}
+          hint="Dispatched or awaiting paperwork"
+          href="/loads?status=IN_PROGRESS"
+        />
+        <Stat
+          label="Pickups today"
+          value={counts.pickupsToday}
+          hint="Appointments today"
+          href="/loads?status=ACTIVE&sort=pickupDate&dir=asc"
+        />
+        <Stat
+          label="Deliveries today"
+          value={counts.deliveriesToday}
+          hint="Appointments today"
+          href="/loads?status=ACTIVE&sort=deliveryDate&dir=asc"
+        />
       </div>
 
-      {financials ? (
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Stat
-            label={`Client revenue — this month (${financials.loadCount} loads)`}
-            value={formatMoney(financials.revenue)}
-          />
-          <Stat label="Carrier cost — this month" value={formatMoney(financials.cost)} />
-          <Stat label="Gross margin — this month" value={formatMoney(financials.margin)} accent />
-        </div>
-      ) : null}
-
-      <div className="grid gap-4 2xl:grid-cols-2">
-        <LoadsPanel
-          title="Upcoming pickups (7 days)"
-          loads={lists.upcomingPickups}
-          empty="No pickups scheduled in the next 7 days."
-          href="/loads?status=ACTIVE&sort=pickupDate&dir=asc"
-          showFinancials={false}
-        />
-        <LoadsPanel
-          title="Upcoming deliveries (7 days)"
-          loads={lists.upcomingDeliveries}
-          empty="No deliveries due in the next 7 days."
-          href="/loads?status=IN_TRANSIT&sort=deliveryDate&dir=asc"
-          showFinancials={false}
-        />
-        <LoadsPanel
-          title="Delivered — awaiting POD"
-          loads={lists.awaitingPod}
-          empty="Every delivered load has a POD."
-          href="/loads?status=DELIVERED"
-          showFinancials={false}
-        />
-        <Panel title="Recently uploaded documents">
-          {uploads.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No uploads yet.</p>
+      {/* DOM order = phone order: problems first, then the schedule. On desktop the schedule
+          takes the left two columns and "Needs attention" sits on the right. */}
+      <div className="grid items-start gap-4 lg:grid-cols-3">
+        <Panel
+          className="lg:col-start-3"
+          title={attention.length ? `Needs attention (${attention.length})` : "Needs attention"}
+        >
+          <AttentionList items={attention} />
+        </Panel>
+        <Panel
+          title="Schedule: next 7 days"
+          className="lg:col-span-2 lg:col-start-1 lg:row-start-1"
+          actions={
+            <Button asChild size="xs" variant="ghost">
+              <Link href="/loads?status=ACTIVE&sort=pickupDate&dir=asc">All loads</Link>
+            </Button>
+          }
+        >
+          {schedule.length === 0 ? (
+            <EmptyState
+              icon={CalendarDays}
+              title="No appointments this week"
+              description="Pickups and deliveries with a date in the next 7 days show up here."
+            />
           ) : (
-            <ul className="grid gap-2 text-sm">
-              {uploads.map((upload) => (
-                <li key={upload.id} className="flex items-center gap-2">
-                  <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <Link
-                    href={`/loads/${upload.load.id}#documents`}
-                    className="font-semibold text-brand-navy hover:underline"
-                  >
-                    #{upload.load.loadNumber}
-                  </Link>
-                  <span className="truncate">{DOCUMENT_TYPE_LABELS[upload.type]}</span>
-                  <span className="ml-auto shrink-0 text-xs text-muted-foreground">
-                    {formatTimestamp(upload.createdAt)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ScheduleList events={schedule} />
           )}
         </Panel>
       </div>
 
-      <LoadsPanel
-        title="Recent loads"
-        loads={lists.recent}
-        empty="No loads yet — create your first load."
-        href="/loads"
-        showFinancials={showFinancials}
-      />
+      {financials && thisMonth ? (
+        <Panel title="Revenue">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,16rem)_1fr] md:items-center">
+            <dl className="grid grid-cols-2 gap-3 md:grid-cols-1">
+              <div>
+                <dt className="text-xs text-muted-foreground">{longMonth.format(thisMonth.monthStart)}</dt>
+                <dd className="text-3xl font-bold text-brand-navy">{formatMoney(thisMonth.revenue)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-muted-foreground">Gross margin</dt>
+                <dd
+                  className={cn("text-lg font-semibold", thisMonth.margin.isNegative() && "text-destructive")}
+                >
+                  {formatMoney(thisMonth.margin)}
+                  {margin ? (
+                    <span className="ml-1 text-sm font-normal text-muted-foreground">
+                      ({margin.toFixed(1)}%)
+                    </span>
+                  ) : null}
+                </dd>
+                <dd className="text-xs text-muted-foreground">
+                  {thisMonth.loadCount} {thisMonth.loadCount === 1 ? "load" : "loads"} this month
+                </dd>
+              </div>
+            </dl>
+            <ColumnChart
+              ariaLabel="Revenue per month, last 6 months"
+              formatTick={(value) => compactMoney.format(value)}
+              data={financials.map((month) => ({
+                label: shortMonth.format(month.monthStart),
+                // Bar height only: display geometry, never money arithmetic.
+                value: month.revenue.toNumber(),
+                valueLabel: compactMoney.format(month.revenue.toNumber()),
+                tooltip: `${longMonth.format(month.monthStart)}: ${formatMoney(month.revenue)} revenue, ${formatMoney(month.margin)} margin`,
+              }))}
+            />
+          </div>
+        </Panel>
+      ) : null}
     </div>
   );
 }

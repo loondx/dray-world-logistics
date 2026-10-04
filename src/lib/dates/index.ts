@@ -37,7 +37,7 @@ export function toDateInputValue(date: Date | null | undefined): string {
 }
 
 // Date-only → "10/01/2026".
-export function formatDateOnly(date: Date | null | undefined, fallback = "—"): string {
+export function formatDateOnly(date: Date | null | undefined, fallback = "-"): string {
   if (!date) return fallback;
   const mm = String(date.getUTCMonth() + 1).padStart(2, "0");
   const dd = String(date.getUTCDate()).padStart(2, "0");
@@ -45,7 +45,7 @@ export function formatDateOnly(date: Date | null | undefined, fallback = "—"):
 }
 
 // Date-only → "Thu, Oct 1" (compact UI display).
-export function formatDateOnlyShort(date: Date | null | undefined, fallback = "—"): string {
+export function formatDateOnlyShort(date: Date | null | undefined, fallback = "-"): string {
   if (!date) return fallback;
   return date.toLocaleDateString("en-US", {
     timeZone: "UTC",
@@ -62,7 +62,7 @@ export function todayDateOnly(now: Date = new Date()): Date {
 }
 
 // Timestamp → "10/01/2026 2:35 PM" in the company time zone.
-export function formatTimestamp(date: Date | null | undefined, fallback = "—"): string {
+export function formatTimestamp(date: Date | null | undefined, fallback = "-"): string {
   if (!date) return fallback;
   return date.toLocaleString("en-US", {
     timeZone: COMPANY_TIME_ZONE,

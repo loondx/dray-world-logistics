@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { db } from "@/lib/db";
 import { calculateMargin } from "@/lib/money";
-import { changeLoadStatus, createLoad, updateLoad } from "@/server/services/load.service";
+import { changeLoadStatus, createLoad, deleteLoad, updateLoad } from "@/server/services/load.service";
 import { createClient } from "@/server/services/client.service";
 import { createCarrier } from "@/server/services/carrier.service";
 import { createDriver } from "@/server/services/driver.service";
@@ -95,7 +95,7 @@ describe("load creation", () => {
       where: { id: load.id },
       include: { statusHistory: true },
     });
-    expect(stored.status).toBe("ASSIGNED"); // carrier given at creation
+    expect(stored.status).toBe("CREATED"); // every load starts as Created, carrier or not
     expect(stored.containerNumber).toBe("ABCU1234567");
     expect(stored.clientRate?.toString()).toBe("2450.5");
     expect(calculateMargin(stored.clientRate, stored.carrierRate)?.toFixed(2)).toBe("600.50");
@@ -103,7 +103,7 @@ describe("load creation", () => {
     expect(stored.statusHistory).toHaveLength(1);
     expect(stored.statusHistory[0]).toMatchObject({
       previousStatus: null,
-      newStatus: "ASSIGNED",
+      newStatus: "CREATED",
       changedById: user.id,
     });
     expect(await db.auditLog.count({ where: { action: "LOAD_CREATED", entityId: load.id } })).toBe(1);
@@ -201,8 +201,7 @@ describe("load updates and status", () => {
       userId: user.id,
       canWriteRates: true,
     });
-    await changeLoadStatus(load.id, "PICKED_UP", null, user.id);
-    await changeLoadStatus(load.id, "DELIVERED", "POD pending", user.id);
+    await changeLoadStatus(load.id, "IN_PROGRESS", "Dispatched", user.id);
     await changeLoadStatus(load.id, "COMPLETED", null, user.id);
 
     const history = await db.loadStatusHistory.findMany({
@@ -211,12 +210,11 @@ describe("load updates and status", () => {
     });
     expect(history.map((h) => [h.previousStatus, h.newStatus])).toEqual([
       [null, "CREATED"],
-      ["CREATED", "PICKED_UP"],
-      ["PICKED_UP", "DELIVERED"],
-      ["DELIVERED", "COMPLETED"],
+      ["CREATED", "IN_PROGRESS"],
+      ["IN_PROGRESS", "COMPLETED"],
     ]);
-    expect(history[2]?.notes).toBe("POD pending");
-    expect(await db.auditLog.count({ where: { action: "STATUS_CHANGED", entityId: load.id } })).toBe(3);
+    expect(history[1]?.notes).toBe("Dispatched");
+    expect(await db.auditLog.count({ where: { action: "STATUS_CHANGED", entityId: load.id } })).toBe(2);
   });
 
   it("rejects a no-op status change", async () => {
@@ -229,7 +227,7 @@ describe("load updates and status", () => {
     await expect(changeLoadStatus(load.id, "CREATED", null, user.id)).rejects.toThrow(/already/);
   });
 
-  it("moves a CREATED load to ASSIGNED when a carrier is added", async () => {
+  it("keeps a load Created when a carrier is added (staff start it themselves)", async () => {
     const user = await createTestUser();
     const client = await createTestClient();
     const carrier = await createTestCarrier();
@@ -242,6 +240,51 @@ describe("load updates and status", () => {
       canWriteRates: true,
     });
     const stored = await db.load.findUniqueOrThrow({ where: { id: load.id } });
-    expect(stored.status).toBe("ASSIGNED");
+    expect(stored.status).toBe("CREATED");
+  });
+});
+
+describe("deleting a load", () => {
+  async function newLoad() {
+    const user = await createTestUser();
+    const client = await createTestClient();
+    const load = await createLoad(loadInput({ clientId: client.id }), {
+      userId: user.id,
+      canWriteRates: true,
+    });
+    return { user, load };
+  }
+
+  it("deletes a Created load with no documents and keeps an audit record", async () => {
+    const { user, load } = await newLoad();
+    await deleteLoad(load.id, user.id);
+
+    expect(await db.load.count({ where: { id: load.id } })).toBe(0);
+    expect(await db.loadStatusHistory.count({ where: { loadId: load.id } })).toBe(0);
+    expect(await db.auditLog.count({ where: { action: "LOAD_DELETED", entityId: load.id } })).toBe(1);
+  });
+
+  it("refuses loads that have started", async () => {
+    const { user, load } = await newLoad();
+    await changeLoadStatus(load.id, "IN_PROGRESS", null, user.id);
+    await expect(deleteLoad(load.id, user.id)).rejects.toThrow(/not started/);
+  });
+
+  it("refuses loads with documents, even deleted ones", async () => {
+    const { user, load } = await newLoad();
+    await db.document.create({
+      data: {
+        loadId: load.id,
+        type: "POD",
+        source: "UPLOADED",
+        storageKey: `test/${load.id}`,
+        originalFilename: "pod.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 1,
+        sha256: "0",
+        deletedAt: new Date(),
+      },
+    });
+    await expect(deleteLoad(load.id, user.id)).rejects.toThrow(/documents/);
   });
 });

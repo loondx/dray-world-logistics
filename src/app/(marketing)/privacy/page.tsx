@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 
+import { COMPANY_DEFAULTS } from "@/config/company-defaults";
+import { pageSocialMetadata } from "@/lib/social-metadata";
+
 import { CompanyContact, LegalPage } from "@/components/marketing/legal-page";
 import { getPublicCompanyProfile } from "@/server/services/company-settings.service";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "How we collect, use and protect personal information submitted through our website.",
+  ...pageSocialMetadata(
+    `Privacy Policy | ${COMPANY_DEFAULTS.displayName}`,
+    "How we collect, use and protect personal information submitted through our website.",
+    "/privacy",
+  ),
 };
 
 // Website privacy policy (PIPEDA-based). Describes what this site actually collects.

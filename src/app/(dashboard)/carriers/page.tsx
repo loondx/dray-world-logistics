@@ -96,13 +96,13 @@ export default async function CarriersPage({ searchParams }: PageProps<"/carrier
                       <div className="text-xs text-muted-foreground">DBA {carrier.dba}</div>
                     ) : null}
                   </TableCell>
-                  <TableCell>{carrier.mcNumber ?? "—"}</TableCell>
-                  <TableCell className="hidden md:table-cell">{carrier.dotNumber ?? "—"}</TableCell>
+                  <TableCell>{carrier.mcNumber ?? "-"}</TableCell>
+                  <TableCell className="hidden md:table-cell">{carrier.dotNumber ?? "-"}</TableCell>
                   <TableCell>
-                    {[carrier.contactPerson, carrier.phone].filter(Boolean).join(" · ") || "—"}
+                    {[carrier.contactPerson, carrier.phone].filter(Boolean).join(" · ") || "-"}
                   </TableCell>
                   <TableCell className="hidden lg:table-cell">
-                    {formatCityState(carrier.city, carrier.stateProvince) || "—"}
+                    {formatCityState(carrier.city, carrier.stateProvince) || "-"}
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     <InsuranceBadge expiry={carrier.insuranceExpiry} />

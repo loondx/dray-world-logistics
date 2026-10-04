@@ -9,7 +9,15 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/s
 
 import { SidebarNav } from "./sidebar-nav";
 
-export function MobileNav({ allowedHrefs, companyName }: { allowedHrefs: string[]; companyName: string }) {
+export function MobileNav({
+  allowedHrefs,
+  badges,
+  companyName,
+}: {
+  allowedHrefs: string[];
+  badges?: Record<string, number>;
+  companyName: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -25,7 +33,7 @@ export function MobileNav({ allowedHrefs, companyName }: { allowedHrefs: string[
           <BrandLockup name={companyName} tagline="Operations Portal" inverted />
         </div>
         <div className="px-2 py-4">
-          <SidebarNav allowedHrefs={allowedHrefs} onNavigate={() => setOpen(false)} />
+          <SidebarNav allowedHrefs={allowedHrefs} badges={badges} onNavigate={() => setOpen(false)} />
         </div>
       </SheetContent>
     </Sheet>

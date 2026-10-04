@@ -1,29 +1,31 @@
-import { ArrowRight, Pencil } from "lucide-react";
+import { ArrowRight, Pencil, Trash2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BackLink } from "@/components/dashboard/back-link";
+import { ConfirmActionButton } from "@/components/dashboard/confirm-action-button";
 import { DescriptionList, Panel } from "@/components/dashboard/description-list";
-import { DocumentTable } from "@/components/documents/document-table";
-import { GenerateDocumentCard } from "@/components/documents/generate-document-card";
-import { UploadDocumentDialog } from "@/components/documents/upload-document-dialog";
+import { DownloadDocumentCard } from "@/components/documents/download-document-card";
 import { ChangeStatusDialog } from "@/components/loads/detail/change-status-dialog";
+import { ChargesEditor } from "@/components/loads/detail/charges-editor";
 import { StopCard } from "@/components/loads/detail/stop-card";
 import { LoadStatusBadge } from "@/components/loads/load-status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { deleteLoadAction } from "@/features/loads/actions";
 import { DIRECTION_LABELS, LOAD_TYPE_LABELS } from "@/features/loads/equipment";
 import { LOAD_STATUS_LABELS } from "@/features/loads/status";
 import { formatDateOnly, formatTimestamp } from "@/lib/dates";
-import { getEnv } from "@/lib/env";
 import { driverFullName, formatCityState } from "@/lib/labels/people";
 import { formatWeight } from "@/lib/labels/units";
+import { invoiceTotal, paymentTermsLabel, resolvePaymentTermsDays } from "@/lib/pdf/mappings/invoice";
 import { calculateMargin, formatMoney, marginPercent } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { can, getCurrentUser, requirePermission } from "@/server/auth/guards";
-import { toDocumentRows } from "@/server/documents/document-rows";
-import { canWriteDocumentType } from "@/server/permissions/document-access";
+import { documentDownloadPath } from "@/features/documents/document-types";
+import { canViewDocumentType } from "@/server/permissions/document-access";
+import { getCompanySettings } from "@/server/services/company-settings.service";
 import { getLoadDetail, getLoadNumber, type LoadDetail } from "@/server/services/load.queries";
 import { getUserNames } from "@/server/services/user.service";
 
@@ -51,13 +53,6 @@ function stop(load: LoadDetail, prefix: "pickup" | "delivery") {
   };
 }
 
-function latestVersion(load: LoadDetail, type: LoadDetail["documents"][number]["type"]): number | null {
-  const versions = load.documents
-    .filter((d) => d.type === type && d.version !== null)
-    .map((d) => d.version ?? 0);
-  return versions.length ? Math.max(...versions) : null;
-}
-
 export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]">) {
   const user = await requirePermission("loads:read");
   const { id } = await params;
@@ -66,25 +61,25 @@ export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]"
 
   const showFinancials = can(user, "financials:read");
   const canEdit = can(user, "loads:write");
-  const canUpload = can(user, "documents:write");
-  const [documents, userNames] = await Promise.all([
-    toDocumentRows(load.documents, user),
+  const [userNames, settings] = await Promise.all([
     getUserNames(load.statusHistory.map((entry) => entry.changedById)),
+    getCompanySettings(),
   ]);
-  const generated = documents.filter((d) => d.source === "GENERATED");
-  const uploaded = documents.filter((d) => d.source === "UPLOADED");
 
   const origin = formatCityState(load.pickupCity, load.pickupStateProvince) || load.pickupLocationName;
   const destination =
     formatCityState(load.deliveryCity, load.deliveryStateProvince) || load.deliveryLocationName;
-  const margin = calculateMargin(load.clientRate, load.carrierRate);
-  const percent = marginPercent(load.clientRate, load.carrierRate);
+  // Billed = client rate + extra charges; margin is measured against what the client is billed.
+  const billed = load.clientRate === null ? null : invoiceTotal(load);
+  const margin = calculateMargin(billed, load.carrierRate);
+  const percent = marginPercent(billed, load.carrierRate);
+  const termsDays = resolvePaymentTermsDays(load.client.paymentTermsDays, settings.invoicePaymentTermsDays);
 
-  const generateCards = [
+  const documentCards = [
     {
       type: "CARRIER_RATE_CONFIRMATION" as const,
       title: "Carrier Load Confirmation",
-      description: "Carrier rate only — sent to the carrier.",
+      description: "Carrier rate only. Sent to the carrier.",
       blockedReason: !load.carrier
         ? "Assign a carrier first."
         : load.carrierRate === null
@@ -93,17 +88,23 @@ export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]"
     },
     {
       type: "SHIPPER_RATE_CONFIRMATION" as const,
-      title: "Customer Rate Confirmation",
-      description: "Client rate only — sent to the customer.",
+      title: "Client Rate Confirmation",
+      description: "Client rate only. Sent to the client.",
       blockedReason: load.clientRate === null ? "Enter the client rate first." : null,
     },
     {
       type: "BOL" as const,
       title: "Bill of Lading",
-      description: "No rates — for shipper, driver and receiver.",
+      description: "No rates, no client details. For carrier, driver and receiver.",
       blockedReason: null,
     },
-  ].filter((card) => canWriteDocumentType(user.role, card.type));
+    {
+      type: "INVOICE" as const,
+      title: "Invoice",
+      description: `INV-${load.loadNumber}: client rate + extra charges. Send to the client after delivery.`,
+      blockedReason: load.clientRate === null ? "Enter the client rate first." : null,
+    },
+  ].filter((card) => canViewDocumentType(user.role, card.type));
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
@@ -140,14 +141,18 @@ export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]"
                 <Pencil /> Edit load
               </Link>
             </Button>
-            {canUpload ? (
-              <UploadDocumentDialog
-                loadId={load.id}
-                maxSizeMb={getEnv().MAX_DOCUMENT_SIZE_MB}
-                triggerLabel="Upload POD / doc"
-              />
-            ) : null}
             <ChangeStatusDialog loadId={load.id} status={load.status} />
+            {load.status === "CREATED" ? (
+              <ConfirmActionButton
+                action={deleteLoadAction.bind(null, load.id)}
+                title={`Delete load #${load.loadNumber}?`}
+                description="Use this when a load is cancelled before it starts. The load is removed from lists and totals; the audit log keeps a record. This cannot be undone."
+                confirmLabel="Delete load"
+                variant="ghost"
+              >
+                <Trash2 /> Delete
+              </ConfirmActionButton>
+            ) : null}
           </div>
         ) : null}
       </header>
@@ -159,7 +164,7 @@ export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]"
               columns={3}
               items={[
                 { label: "Load date", value: formatDateOnly(load.loadDate) },
-                { label: "Customer ref #", value: load.customerReference },
+                { label: "Client ref #", value: load.customerReference },
                 { label: "Container #", value: load.containerNumber },
                 { label: "Booking / B/L #", value: load.bookingNumber },
                 { label: "Seal #", value: load.sealNumber },
@@ -185,51 +190,25 @@ export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]"
             <StopCard label="Delivery" stop={stop(load, "delivery")} />
           </div>
 
-          <Panel
-            id="documents"
-            title="Documents"
-            actions={
-              canUpload ? (
-                <UploadDocumentDialog
-                  loadId={load.id}
-                  maxSizeMb={getEnv().MAX_DOCUMENT_SIZE_MB}
-                  triggerLabel="Upload POD / COD / other"
-                />
-              ) : null
-            }
-          >
-            {generateCards.length > 0 ? (
-              <div className="grid gap-3 md:grid-cols-3">
-                {generateCards.map((card) => (
-                  <GenerateDocumentCard
+          {documentCards.length > 0 ? (
+            <Panel id="documents" title="Documents">
+              <p className="mb-3 text-xs text-muted-foreground">
+                Built from this load&apos;s current details each time. Nothing is saved on the server:
+                download the PDF and send it.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {documentCards.map((card) => (
+                  <DownloadDocumentCard
                     key={card.type}
-                    loadId={load.id}
-                    type={card.type}
                     title={card.title}
                     description={card.description}
-                    latestVersion={latestVersion(load, card.type)}
+                    href={documentDownloadPath(load.id, card.type)}
                     blockedReason={card.blockedReason}
                   />
                 ))}
               </div>
-            ) : null}
-            <h3 className="mt-5 mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Generated documents
-            </h3>
-            <DocumentTable
-              documents={generated}
-              canDelete={can(user, "documents:delete")}
-              emptyText="Nothing generated yet."
-            />
-            <h3 className="mt-5 mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-              Uploaded documents (POD, COD, tickets…)
-            </h3>
-            <DocumentTable
-              documents={uploaded}
-              canDelete={can(user, "documents:delete")}
-              emptyText="No uploads yet."
-            />
-          </Panel>
+            </Panel>
+          ) : null}
 
           <Panel title="Timeline">
             <ol className="relative grid gap-3 border-l pl-4">
@@ -248,7 +227,7 @@ export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]"
                     ) : (
                       <strong>{LOAD_STATUS_LABELS[entry.newStatus]}</strong>
                     )}
-                    {entry.notes ? <span className="text-muted-foreground"> — {entry.notes}</span> : null}
+                    {entry.notes ? <span className="text-muted-foreground">: {entry.notes}</span> : null}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {formatTimestamp(entry.createdAt)} ·{" "}
@@ -316,7 +295,29 @@ export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]"
                   <dt className="text-muted-foreground">Client rate</dt>
                   <dd className="font-semibold tabular-nums">{formatMoney(load.clientRate)}</dd>
                 </div>
+                <div className="grid gap-1">
+                  <dt className="text-muted-foreground">Extra charges (billed to client)</dt>
+                  <dd>
+                    <ChargesEditor
+                      loadId={load.id}
+                      canEdit={can(user, "financials:write")}
+                      charges={load.charges.map((charge) => ({
+                        id: charge.id,
+                        description: charge.description,
+                        amount: formatMoney(charge.amount),
+                      }))}
+                    />
+                  </dd>
+                </div>
+                <div className="flex justify-between border-t pt-2">
+                  <dt className="font-medium">Invoice total</dt>
+                  <dd className="font-bold tabular-nums">{formatMoney(billed)}</dd>
+                </div>
                 <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Payment terms</dt>
+                  <dd>{paymentTermsLabel(termsDays)}</dd>
+                </div>
+                <div className="flex justify-between border-t pt-2">
                   <dt className="text-muted-foreground">Carrier rate</dt>
                   <dd className="font-semibold tabular-nums">{formatMoney(load.carrierRate)}</dd>
                 </div>
@@ -356,7 +357,7 @@ export default async function LoadDetailPage({ params }: PageProps<"/loads/[id]"
             <p className="text-sm whitespace-pre-line">
               {load.internalNotes ?? <span className="text-muted-foreground">No internal notes.</span>}
             </p>
-            <p className="mt-2 text-xs text-muted-foreground">Staff only — never printed on documents.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Staff only. Never printed on documents.</p>
           </Panel>
         </div>
       </div>

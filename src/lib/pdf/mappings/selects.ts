@@ -92,7 +92,7 @@ export const CARRIER_RATE_CONFIRMATION_SELECT = {
   driver: { select: DRIVER_FIELDS },
 } satisfies Prisma.LoadSelect;
 
-// Customer rate confirmation: client rate + client. NO carrier, driver, carrier rate or internal notes.
+// Client rate confirmation: client rate + client. NO carrier, driver, carrier rate or internal notes.
 export const SHIPPER_RATE_CONFIRMATION_SELECT = {
   ...SHIPMENT_FIELDS,
   ...STOP_FIELDS,
@@ -101,16 +101,25 @@ export const SHIPPER_RATE_CONFIRMATION_SELECT = {
   client: { select: CLIENT_FIELDS },
 } satisfies Prisma.LoadSelect;
 
-// Bill of lading: parties and cargo. NO rates of any kind, NO internal notes.
+// Bill of lading: carrier, driver and cargo. NO client, client reference, rates or internal notes.
 export const BILL_OF_LADING_SELECT = {
   ...SHIPMENT_FIELDS,
   ...STOP_FIELDS,
-  customerReference: true,
   truckNumber: true,
   trailerNumber: true,
-  client: { select: CLIENT_FIELDS },
   carrier: { select: CARRIER_FIELDS },
   driver: { select: DRIVER_FIELDS },
+} satisfies Prisma.LoadSelect;
+
+// Client invoice: client rate, extra charges, client + payment terms.
+// NO carrier, driver, carrier rate or internal notes.
+export const INVOICE_SELECT = {
+  ...SHIPMENT_FIELDS,
+  ...STOP_FIELDS,
+  customerReference: true,
+  clientRate: true,
+  client: { select: { ...CLIENT_FIELDS, paymentTermsDays: true } },
+  charges: { select: { description: true, amount: true }, orderBy: { createdAt: "asc" } },
 } satisfies Prisma.LoadSelect;
 
 export type CarrierRateConfirmationSource = Prisma.LoadGetPayload<{
@@ -120,3 +129,4 @@ export type ShipperRateConfirmationSource = Prisma.LoadGetPayload<{
   select: typeof SHIPPER_RATE_CONFIRMATION_SELECT;
 }>;
 export type BillOfLadingSource = Prisma.LoadGetPayload<{ select: typeof BILL_OF_LADING_SELECT }>;
+export type InvoiceSource = Prisma.LoadGetPayload<{ select: typeof INVOICE_SELECT }>;

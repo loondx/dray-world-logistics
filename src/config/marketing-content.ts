@@ -1,6 +1,13 @@
 // Public website copy. Only states what the company does (confirmed service list);
 // no invented statistics, years in business, fleet sizes, certifications or locations.
 
+// Search / social description of the public site (one or two sentences).
+export const SITE_DESCRIPTION =
+  "Global freight connections, handled and delivered across the USA and Canada. Containerized logistics from port to final delivery: import/export containers, port transportation, drayage, yard, rail/intermodal, OTR, FTL and LTL.";
+
+// Short line for share cards, where space is tight.
+export const SITE_TAGLINE = "Containerized logistics, port to door. USA & Canada.";
+
 export type ServiceKey =
   "drayage" | "import-export" | "ftl" | "ltl" | "otr" | "intermodal" | "port" | "yard" | "cross-border";
 

@@ -15,9 +15,9 @@ import {
 } from "./common";
 import type { ShipperRateConfirmationSource } from "./selects";
 
-export const SHIPPER_RATE_CONFIRMATION_TITLE = "CUSTOMER RATE CONFIRMATION";
+export const SHIPPER_RATE_CONFIRMATION_TITLE = "CLIENT RATE CONFIRMATION";
 
-// Maps a customer-scoped load selection to the customer rate confirmation.
+// Maps a client-scoped load selection to the client rate confirmation.
 // The source type has no carrier, driver, carrier rate or internal notes.
 export function toShipperRateConfirmationDTO(
   load: ShipperRateConfirmationSource,
@@ -37,7 +37,7 @@ export function toShipperRateConfirmationDTO(
     summary: fields([
       ["Load #", load.loadNumber],
       ["Date", context.documentDate],
-      ["Customer Ref #", load.customerReference],
+      ["Client Ref #", load.customerReference],
       ["Equipment", equipmentLabel(load.equipmentType, load.equipmentSize)],
       ["Weight", formatWeight(load.weight, load.weightUnit)],
       ["Commodity", load.commodity],
@@ -45,7 +45,7 @@ export function toShipperRateConfirmationDTO(
       ["Container #", load.containerNumber],
       ["Booking #", load.bookingNumber],
     ]),
-    customer: {
+    client: {
       name: client.companyName,
       addressLines: addressLines(client),
       phone: client.phone,

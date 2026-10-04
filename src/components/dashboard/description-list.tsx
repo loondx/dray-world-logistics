@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export type DescriptionItem = { label: string; value: ReactNode; wide?: boolean };
 
-// Compact label/value grid; empty values render as an em dash.
+// Compact label/value grid; empty values render as a dash.
 export function DescriptionList({ items, columns = 2 }: { items: DescriptionItem[]; columns?: 1 | 2 | 3 }) {
   return (
     <dl
@@ -18,7 +18,7 @@ export function DescriptionList({ items, columns = 2 }: { items: DescriptionItem
           <dt className="text-xs text-muted-foreground">{item.label}</dt>
           <dd className="font-medium break-words whitespace-pre-line">
             {item.value === null || item.value === undefined || item.value === "" ? (
-              <span className="font-normal text-muted-foreground">—</span>
+              <span className="font-normal text-muted-foreground">-</span>
             ) : (
               item.value
             )}

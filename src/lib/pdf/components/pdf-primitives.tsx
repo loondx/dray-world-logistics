@@ -53,30 +53,6 @@ export function PdfPartyBlock({ party, extra }: { party: PdfParty; extra?: PdfFi
   );
 }
 
-// Two parties side by side (e.g. customer and carrier on the BOL).
-export function PdfPartyColumns({ columns }: { columns: { title: string; party: PdfParty }[] }) {
-  return (
-    <View style={[pdf.row, pdf.section]} wrap={false}>
-      {columns.map(({ title, party }, index) => (
-        <View
-          key={title}
-          style={{ width: "50%", paddingRight: index === 0 ? 10 : 0, paddingLeft: index === 0 ? 0 : 10 }}
-        >
-          <Text style={pdf.sectionTitle}>{title}</Text>
-          <Text style={pdf.bold}>{party.name}</Text>
-          {party.addressLines.map((line) => (
-            <Text key={line}>{line}</Text>
-          ))}
-          {party.phone ? <Text>{party.phone}</Text> : null}
-          <View style={{ marginTop: 3 }}>
-            <PdfLabelValues items={party.details} labelWidth={78} />
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 export function PdfParagraph({ label, text }: { label: string; text: string | null }) {
   if (!text) return null;
   return (

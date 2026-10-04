@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 
 import { Field, TextAreaField, TextField } from "@/components/forms/field";
+import { PaymentTermsField } from "@/components/forms/payment-terms-field";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { useActionForm } from "@/components/forms/use-action-form";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,8 @@ type CompanyDetails = Pick<
   | "website"
   | "mcNumber"
   | "dotNumber"
+  | "scacCode"
+  | "dunsNumber"
   | "businessNumber"
 >;
 
@@ -78,6 +81,8 @@ export function CompanyDetailsForm({ defaults }: { defaults: CompanyDetails }) {
         {text("operationsEmail", "Operations email", { type: "email" })}
         {text("mcNumber", "MC number", { hint: "Printed in the document header." })}
         {text("dotNumber", "DOT number")}
+        {text("scacCode", "SCAC", { hint: "4-letter carrier code." })}
+        {text("dunsNumber", "DUNS number", { hint: "Printed on invoices." })}
         {text("businessNumber", "Business / tax number")}
         {text("website", "Website")}
       </div>
@@ -90,7 +95,13 @@ export function CompanyDetailsForm({ defaults }: { defaults: CompanyDetails }) {
 
 type Terms = Pick<
   CompanySettings,
-  "carrierTerms" | "shipperTerms" | "bolInstructions" | "bolTerms" | "paymentInstructions"
+  | "carrierTerms"
+  | "shipperTerms"
+  | "bolInstructions"
+  | "bolTerms"
+  | "paymentInstructions"
+  | "invoicePaymentTermsDays"
+  | "invoiceNotes"
 >;
 
 export function DocumentTermsForm({ defaults }: { defaults: Terms }) {
@@ -98,11 +109,11 @@ export function DocumentTermsForm({ defaults }: { defaults: Terms }) {
   const { pending, onSubmit, fieldError } = useActionForm(updateDocumentTermsAction, {
     onSuccess: () => router.refresh(),
   });
-  const hint = "One item per line — each line becomes a bullet on the PDF. Leave empty to omit.";
+  const hint = "One item per line. Each line becomes a bullet on the PDF. Leave empty to omit.";
   return (
     <form onSubmit={onSubmit} className="grid gap-4" noValidate>
       <TextAreaField
-        label="Carrier load confirmation — terms & conditions"
+        label="Carrier load confirmation: terms & conditions"
         name="carrierTerms"
         rows={7}
         hint={hint}
@@ -110,7 +121,7 @@ export function DocumentTermsForm({ defaults }: { defaults: Terms }) {
         error={fieldError("carrierTerms")}
       />
       <TextAreaField
-        label="Customer rate confirmation — terms"
+        label="Client rate confirmation: terms"
         name="shipperTerms"
         rows={5}
         hint={hint}
@@ -118,23 +129,41 @@ export function DocumentTermsForm({ defaults }: { defaults: Terms }) {
         error={fieldError("shipperTerms")}
       />
       <TextAreaField
-        label="Customer payment instructions"
+        label="Client payment instructions"
         name="paymentInstructions"
         rows={3}
-        hint="Printed on the customer rate confirmation."
+        hint="How clients pay you (bank / remittance details). Printed on the client rate confirmation and the invoice."
         defaultValue={defaults.paymentInstructions ?? ""}
         error={fieldError("paymentInstructions")}
       />
+      <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
+        <PaymentTermsField
+          name="invoicePaymentTermsDays"
+          label="Invoice payment terms"
+          emptyLabel="Net 15 (standard)"
+          hint="Default for every client (Net 15 if not chosen). A client can have its own terms."
+          defaultValue={defaults.invoicePaymentTermsDays}
+          error={fieldError("invoicePaymentTermsDays")}
+        />
+        <TextAreaField
+          label="Invoice notes"
+          name="invoiceNotes"
+          rows={3}
+          hint={hint}
+          defaultValue={defaults.invoiceNotes ?? ""}
+          error={fieldError("invoiceNotes")}
+        />
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <TextAreaField
-          label="Bill of lading — instructions"
+          label="Bill of lading: instructions"
           name="bolInstructions"
           rows={4}
           defaultValue={defaults.bolInstructions ?? ""}
           error={fieldError("bolInstructions")}
         />
         <TextAreaField
-          label="Bill of lading — terms"
+          label="Bill of lading: terms"
           name="bolTerms"
           rows={4}
           hint={hint}
@@ -186,7 +215,7 @@ export function LoadNumberForm({ nextLoadNumber }: { nextLoadNumber: number }) {
         name="nextLoadNumber"
         inputMode="numeric"
         defaultValue={String(nextLoadNumber)}
-        hint="Can only move forward — numbers are never reused."
+        hint="Can only move forward. Numbers are never reused."
         error={fieldError("nextLoadNumber")}
         className="sm:w-60"
       />

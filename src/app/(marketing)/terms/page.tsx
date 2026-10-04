@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+
+import { COMPANY_DEFAULTS } from "@/config/company-defaults";
+import { pageSocialMetadata } from "@/lib/social-metadata";
 import Link from "next/link";
 
 import { CompanyContact, LegalPage } from "@/components/marketing/legal-page";
@@ -7,6 +10,11 @@ import { getPublicCompanyProfile } from "@/server/services/company-settings.serv
 export const metadata: Metadata = {
   title: "Terms of Use",
   description: "Terms that apply when you use our website and request quotes.",
+  ...pageSocialMetadata(
+    `Terms of Use | ${COMPANY_DEFAULTS.displayName}`,
+    "Terms that apply when you use our website and request quotes.",
+    "/terms",
+  ),
 };
 
 // Website terms of use. They deliberately do not restate carriage terms (liability,

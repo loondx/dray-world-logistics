@@ -2,6 +2,7 @@ import type { DocumentContext } from "@/lib/pdf/mappings/common";
 import type {
   BillOfLadingSource,
   CarrierRateConfirmationSource,
+  InvoiceSource,
   ShipperRateConfirmationSource,
 } from "@/lib/pdf/mappings/selects";
 
@@ -100,12 +101,21 @@ export const shipperSource = {
   client,
 } as unknown as ShipperRateConfirmationSource;
 
-export const bolSource = {
+export const invoiceSource = {
   ...shipment,
   customerReference: "PO-99812",
+  clientRate: { toString: () => CLIENT_RATE },
+  client: { ...client, paymentTermsDays: null },
+  charges: [
+    { description: "Chassis", amount: { toString: () => "85.00" } },
+    { description: "Detention", amount: { toString: () => "120.50" } },
+  ],
+} as unknown as InvoiceSource;
+
+export const bolSource = {
+  ...shipment,
   truckNumber: "T-101",
   trailerNumber: "CH-2201",
-  client,
   carrier,
   driver,
 } as unknown as BillOfLadingSource;
@@ -114,13 +124,15 @@ export const documentContext: DocumentContext = {
   company: {
     name: "DRAY-WORLD LOGISTICS INC",
     addressLines: ["9 Nom Crescent Unit 2", "Markham, ON L3S 2B3", "Canada"],
-    mcNumber: null,
-    dotNumber: null,
+    mcNumber: "1551033",
+    dotNumber: "4078507",
+    scacCode: "DRBO",
     phone: null,
     email: null,
     logo: null,
   },
   documentDate: "10/01/2026",
+  issueDate: new Date(Date.UTC(2026, 9, 1)),
   settings: {
     carrierTerms:
       "Carrier must notify broker of any delay immediately.\nSubmit signed POD within 48 hours of delivery.",
@@ -130,5 +142,9 @@ export const documentContext: DocumentContext = {
     paymentInstructions: null,
     contactPhone: null,
     contactEmail: null,
+    invoicePaymentTermsDays: 30,
+    invoiceNotes: "Interest of 2% per month applies to overdue balances.",
+    businessNumber: null,
+    dunsNumber: "209238475",
   },
 };

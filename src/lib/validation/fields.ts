@@ -85,6 +85,18 @@ export const optionalPositiveInt = z.preprocess(
     .transform((value) => value ?? null),
 );
 
+// Invoice payment terms in days (0 = due on receipt). Blank = not set.
+export const optionalPaymentTermsDays = z.preprocess(
+  blankToUndefined,
+  z.coerce
+    .number({ error: "Enter a number of days, e.g. 30." })
+    .int("Enter a whole number of days.")
+    .min(0, "Must be zero or more.")
+    .max(365, "Must be 365 days or fewer.")
+    .optional()
+    .transform((value) => value ?? null),
+);
+
 // Weight etc.: up to 2 decimals, kept as a string for Decimal columns.
 export const optionalDecimal = z.preprocess(
   (value) => (typeof value === "string" ? blankToUndefined(value.replace(/,/g, "")) : value),

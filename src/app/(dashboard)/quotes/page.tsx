@@ -1,34 +1,66 @@
-import { Inbox, PhoneCall } from "lucide-react";
+import { Inbox, PhoneCall, UserPlus } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 
+import { DescriptionList } from "@/components/dashboard/description-list";
 import { EmptyState } from "@/components/dashboard/empty-state";
+import { AutoSubmitForm } from "@/components/dashboard/list/auto-submit-form";
 import { FilterTabs } from "@/components/dashboard/list/filter-tabs";
 import { Pagination } from "@/components/dashboard/list/pagination";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { AddLeadDialog } from "@/components/quotes/add-lead-dialog";
 import { QUOTE_STATUS_LABELS, QuoteStatusSelect } from "@/components/quotes/quote-status-select";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { QuoteRequestStatus } from "@/generated/prisma/enums";
-import { formatDateOnlyShort, formatTimestamp } from "@/lib/dates";
+import { formatDateOnly, formatTimestamp } from "@/lib/dates";
 import { can, requirePermission } from "@/server/auth/guards";
 import { firstParam, parsePage } from "@/server/services/pagination";
 import { listQuoteRequests } from "@/server/services/quote.service";
 
-export const metadata: Metadata = { title: "Quote requests" };
+export const metadata: Metadata = { title: "Leads" };
+
+// Opens the new-client form pre-filled from the lead.
+function newClientHref(lead: {
+  name: string;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+}) {
+  const params = new URLSearchParams({ companyName: lead.company || lead.name, contactName: lead.name });
+  if (lead.email) params.set("email", lead.email);
+  if (lead.phone) params.set("phone", lead.phone);
+  return `/clients/new?${params.toString()}`;
+}
 
 export default async function QuotesPage({ searchParams }: PageProps<"/quotes">) {
   const user = await requirePermission("quotes:read");
   const params = await searchParams;
   const status = Object.values(QuoteRequestStatus).find((value) => value === firstParam(params.status));
-  const result = await listQuoteRequests({ status, page: parsePage(params.page) });
+  const q = firstParam(params.q)?.trim() || undefined;
+  const result = await listQuoteRequests({ status, q, page: parsePage(params.page) });
   const canWrite = can(user, "quotes:write");
+  const canCreateClient = can(user, "masterdata:write");
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
       <PageHeader
-        title="Quote requests"
-        description="Leads from the website: quote requests and call-back requests."
+        title="Leads"
+        description="Quote requests from the website arrive here automatically. Add phone and email enquiries with Add lead."
+        actions={canWrite ? <AddLeadDialog /> : null}
       />
+      <AutoSubmitForm className="flex gap-2">
+        {status ? <input type="hidden" name="status" value={status} /> : null}
+        <Input
+          type="search"
+          name="q"
+          defaultValue={q ?? ""}
+          placeholder="Search name, company, email, phone or city"
+          aria-label="Search leads"
+          className="max-w-md bg-card"
+        />
+      </AutoSubmitForm>
       <FilterTabs
         pathname="/quotes"
         searchParams={params}
@@ -39,96 +71,88 @@ export default async function QuotesPage({ searchParams }: PageProps<"/quotes">)
           ...Object.values(QuoteRequestStatus).map((value) => ({ value, label: QUOTE_STATUS_LABELS[value] })),
         ]}
       />
-      <div className="overflow-x-auto rounded-lg border bg-card">
+      <div className="rounded-lg border bg-card">
         {result.items.length === 0 ? (
           <EmptyState
             icon={Inbox}
-            title="No quote requests"
-            description="Requests from the website's quote form appear here."
+            title={q ? "No leads match your search" : "No leads yet"}
+            description="Requests from the website's quote form appear here automatically."
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Received</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Lane</TableHead>
-                <TableHead className="min-w-64">Details</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {result.items.map((quote) => (
-                <TableRow key={quote.id} className="align-top">
-                  <TableCell className="text-xs whitespace-nowrap">
-                    {formatTimestamp(quote.createdAt)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{quote.name}</div>
-                    {quote.company ? (
-                      <div className="text-xs text-muted-foreground">{quote.company}</div>
+          <ul className="divide-y">
+            {result.items.map((quote) => (
+              <li key={quote.id} className="grid gap-3 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold">
+                      {quote.name}
+                      {quote.company ? (
+                        <span className="font-normal text-muted-foreground"> · {quote.company}</span>
+                      ) : null}
+                    </p>
+                    <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                      <Badge variant={quote.source === "WEBSITE" ? "secondary" : "outline"}>
+                        {quote.source === "WEBSITE" ? "Website" : "Added by staff"}
+                      </Badge>
+                      Received {formatTimestamp(quote.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {canCreateClient ? (
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={newClientHref(quote)}>
+                          <UserPlus /> Create client
+                        </Link>
+                      </Button>
                     ) : null}
-                    {quote.email ? (
-                      <a
-                        href={`mailto:${quote.email}`}
-                        className="block text-xs text-brand-blue hover:underline"
-                      >
-                        {quote.email}
-                      </a>
-                    ) : null}
-                    {quote.phone ? (
-                      <a
-                        href={`tel:${quote.phone.replace(/[^\d+]/g, "")}`}
-                        className="block text-xs hover:underline"
-                      >
-                        {quote.phone}
-                      </a>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="text-sm">
                     {quote.kind === "CALLBACK" ? (
                       <Badge variant="secondary" className="gap-1">
                         <PhoneCall className="size-3" aria-hidden="true" />
                         Call back
                       </Badge>
-                    ) : (
-                      quote.serviceType
-                    )}
-                    {quote.preferredTime ? (
-                      <div className="mt-1 text-xs text-muted-foreground">{quote.preferredTime}</div>
                     ) : null}
-                    {quote.equipment || quote.loadCount || quote.readyDate ? (
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {[
-                          quote.equipment,
-                          quote.loadCount
-                            ? `${quote.loadCount} load${quote.loadCount === 1 ? "" : "s"}`
-                            : null,
-                          quote.readyDate ? `Ready ${formatDateOnlyShort(quote.readyDate)}` : null,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </div>
-                    ) : null}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {[quote.origin, quote.destination].filter(Boolean).join(" → ") || "—"}
-                  </TableCell>
-                  <TableCell className="max-w-md text-sm whitespace-pre-line">
-                    {quote.message ?? "—"}
-                  </TableCell>
-                  <TableCell>
                     {canWrite ? (
                       <QuoteStatusSelect id={quote.id} status={quote.status} />
                     ) : (
-                      QUOTE_STATUS_LABELS[quote.status]
+                      <Badge variant="outline">{QUOTE_STATUS_LABELS[quote.status]}</Badge>
                     )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                  </div>
+                </div>
+                {/* Every field the website form collects, each with its own label. */}
+                <DescriptionList
+                  columns={3}
+                  items={[
+                    {
+                      label: "Email",
+                      value: quote.email ? (
+                        <a href={`mailto:${quote.email}`} className="text-brand-blue hover:underline">
+                          {quote.email}
+                        </a>
+                      ) : null,
+                    },
+                    {
+                      label: "Phone",
+                      value: quote.phone ? (
+                        <a href={`tel:${quote.phone.replace(/[^\d+]/g, "")}`} className="hover:underline">
+                          {quote.phone}
+                        </a>
+                      ) : null,
+                    },
+                    { label: "Service", value: quote.serviceType },
+                    { label: "Pickup from", value: quote.origin },
+                    { label: "Deliver to", value: quote.destination },
+                    { label: "Equipment", value: quote.equipment },
+                    { label: "Number of loads", value: quote.loadCount },
+                    { label: "Ready date", value: quote.readyDate ? formatDateOnly(quote.readyDate) : null },
+                    ...(quote.preferredTime
+                      ? [{ label: "Preferred call time", value: quote.preferredTime }]
+                      : []),
+                    { label: "Notes", value: quote.message, wide: true },
+                  ]}
+                />
+              </li>
+            ))}
+          </ul>
         )}
       </div>
       <Pagination

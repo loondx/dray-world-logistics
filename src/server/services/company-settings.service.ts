@@ -3,7 +3,7 @@ import "server-only";
 import { connection } from "next/server";
 import { cache } from "react";
 
-import { COMPANY_DEFAULTS } from "@/config/company-defaults";
+import { COMPANY_CONTACTS, COMPANY_DEFAULTS, type CompanyContact } from "@/config/company-defaults";
 import type { CompanySettings } from "@/generated/prisma/client";
 import { isDatabaseEnabled } from "@/lib/database-enabled";
 import { db } from "@/lib/db";
@@ -42,12 +42,29 @@ export type PublicCompanyProfile = Pick<
   | "website"
   | "mcNumber"
   | "dotNumber"
->;
+  | "scacCode"
+> & { contacts: readonly CompanyContact[] };
 
 export async function getPublicCompanyProfile(): Promise<PublicCompanyProfile> {
   await connection();
   if (!isDatabaseEnabled()) {
-    return { ...COMPANY_DEFAULTS, phone: null, email: null, website: null, mcNumber: null, dotNumber: null };
+    return {
+      legalName: COMPANY_DEFAULTS.legalName,
+      displayName: COMPANY_DEFAULTS.displayName,
+      addressLine1: COMPANY_DEFAULTS.addressLine1,
+      addressLine2: COMPANY_DEFAULTS.addressLine2,
+      city: COMPANY_DEFAULTS.city,
+      stateProvince: COMPANY_DEFAULTS.stateProvince,
+      postalCode: COMPANY_DEFAULTS.postalCode,
+      country: COMPANY_DEFAULTS.country,
+      phone: COMPANY_DEFAULTS.phone,
+      email: COMPANY_DEFAULTS.email,
+      website: COMPANY_DEFAULTS.website,
+      mcNumber: COMPANY_DEFAULTS.mcNumber,
+      dotNumber: COMPANY_DEFAULTS.dotNumber,
+      scacCode: COMPANY_DEFAULTS.scacCode,
+      contacts: COMPANY_CONTACTS,
+    };
   }
   const s = await getCompanySettings();
   return {
@@ -59,11 +76,14 @@ export async function getPublicCompanyProfile(): Promise<PublicCompanyProfile> {
     stateProvince: s.stateProvince,
     postalCode: s.postalCode,
     country: s.country,
-    phone: s.phone,
-    email: s.email,
+    // Settings win; until a main phone/email is entered there, use the confirmed defaults.
+    phone: s.phone ?? COMPANY_DEFAULTS.phone,
+    email: s.email ?? COMPANY_DEFAULTS.email,
     website: s.website,
     // Public carrier registrations (shown as trust signals when set).
     mcNumber: s.mcNumber,
     dotNumber: s.dotNumber,
+    scacCode: s.scacCode,
+    contacts: COMPANY_CONTACTS,
   };
 }

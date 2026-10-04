@@ -129,7 +129,7 @@ export function CarrierForm({
           <TextAreaField
             label="Notes"
             name="notes"
-            hint="Internal only — never printed on documents."
+            hint="Internal only. Never printed on documents."
             defaultValue={defaults?.notes ?? ""}
             error={fieldError("notes")}
           />

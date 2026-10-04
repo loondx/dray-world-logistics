@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 
 import { AddressFields } from "@/components/forms/address-fields";
 import { TextAreaField, TextField } from "@/components/forms/field";
+import { PaymentTermsField } from "@/components/forms/payment-terms-field";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { useActionForm } from "@/components/forms/use-action-form";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ type ClientDefaults = Partial<
     | "country"
     | "mcNumber"
     | "dotNumber"
+    | "paymentTermsDays"
     | "notes"
   >
 >;
@@ -102,11 +104,19 @@ export function ClientForm({
               defaultValue={defaults?.dotNumber ?? ""}
               error={fieldError("dotNumber")}
             />
+            <PaymentTermsField
+              name="paymentTermsDays"
+              label="Payment terms"
+              emptyLabel="Company default"
+              hint="Printed on this client's invoices."
+              defaultValue={defaults?.paymentTermsDays}
+              error={fieldError("paymentTermsDays")}
+            />
           </div>
           <TextAreaField
             label="Notes"
             name="notes"
-            hint="Internal only — never printed on documents."
+            hint="Internal only. Never printed on documents."
             defaultValue={defaults?.notes ?? ""}
             error={fieldError("notes")}
           />

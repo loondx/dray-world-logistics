@@ -34,14 +34,6 @@ export function resolveStoragePath(root: string, storageKey: string): string {
   return resolved;
 }
 
-export function loadGeneratedKey(loadNumber: number, filename: string): string {
-  return buildStorageKey("loads", String(loadNumber), "generated", filename);
-}
-
-export function loadUploadKey(loadNumber: number, filename: string): string {
-  return buildStorageKey("loads", String(loadNumber), "uploads", filename);
-}
-
 export function companyAssetKey(filename: string): string {
   return buildStorageKey("company", filename);
 }

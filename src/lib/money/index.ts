@@ -60,7 +60,7 @@ function asIntlString(value: Decimal): IntlDecimalString {
   return value.toFixed(2) as IntlDecimalString;
 }
 
-export function formatMoney(value: MoneyValue, fallback = "—"): string {
+export function formatMoney(value: MoneyValue, fallback = "-"): string {
   const decimal = toDecimal(value);
   return decimal ? currencyFormatter.format(asIntlString(decimal)) : fallback;
 }

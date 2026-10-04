@@ -108,7 +108,7 @@ export function LoadForm({
             ) : null}
             <TextField
               className="sm:col-span-2"
-              label={isDrayage ? "Customer ref #" : "Customer ref / PO #"}
+              label={isDrayage ? "Client ref #" : "Client ref / PO #"}
               name="customerReference"
               defaultValue={defaults.customerReference}
               error={fieldError("customerReference")}
@@ -125,7 +125,7 @@ export function LoadForm({
             <Field label="Equipment" className="sm:col-span-2">
               {(props) => (
                 <NativeSelect {...props} name="equipmentType" defaultValue={defaults.equipmentType}>
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {equipment.types.map((option) => (
                     <option key={option}>{option}</option>
                   ))}
@@ -135,7 +135,7 @@ export function LoadForm({
             <Field label={isDrayage ? "Size" : "Length"} className="sm:col-span-1">
               {(props) => (
                 <NativeSelect {...props} name="equipmentSize" defaultValue={defaults.equipmentSize}>
-                  <option value="">—</option>
+                  <option value="">-</option>
                   {equipment.sizes.map((option) => (
                     <option key={option}>{option}</option>
                   ))}
@@ -146,7 +146,7 @@ export function LoadForm({
               <Field label="Import / Export" className="sm:col-span-1">
                 {(props) => (
                   <NativeSelect {...props} name="direction" defaultValue={defaults.direction}>
-                    <option value="">—</option>
+                    <option value="">-</option>
                     {Object.entries(DIRECTION_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
                         {label}
@@ -229,14 +229,14 @@ export function LoadForm({
           <TextAreaField
             label="Special instructions"
             name="specialInstructions"
-            hint="Printed on the load confirmation, customer confirmation and BOL."
+            hint="Printed on the carrier confirmation, client confirmation and BOL."
             defaultValue={defaults.specialInstructions}
             error={fieldError("specialInstructions")}
           />
           <TextAreaField
             label="Internal notes"
             name="internalNotes"
-            hint="Staff only — never printed."
+            hint="Staff only. Never printed."
             defaultValue={defaults.internalNotes}
             error={fieldError("internalNotes")}
           />

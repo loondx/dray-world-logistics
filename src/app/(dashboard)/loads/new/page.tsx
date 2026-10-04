@@ -71,7 +71,7 @@ export default async function NewLoadPage({ searchParams }: PageProps<"/loads/ne
       <BackLink href="/loads/new">Change load type</BackLink>
       <PageHeader
         title={`New ${LOAD_TYPE_LABELS[type]} load`}
-        description="Only the client and load date are required — fill in the rest as you know it."
+        description="Only the client and load date are required. Fill in the rest as you know it."
       />
       <LoadForm
         type={type}

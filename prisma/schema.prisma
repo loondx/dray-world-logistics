@@ -38,17 +38,12 @@ enum LoadType {
   OTR
 }
 
+// Kept deliberately short: Created (booked, not started) → In progress (dispatched,
+// on the road or awaiting paperwork) → Completed (done and paperwork in).
 enum LoadStatus {
-  DRAFT
   CREATED
-  ASSIGNED
-  PICKUP_SCHEDULED
-  PICKED_UP
-  IN_TRANSIT
-  DELIVERED
-  DOCUMENTS_PENDING
+  IN_PROGRESS
   COMPLETED
-  CANCELLED
 }
 
 enum ShipmentDirection {
@@ -90,6 +85,12 @@ enum DocumentSource {
 enum QuoteRequestKind {
   QUOTE
   CALLBACK
+}
+
+// Where a lead came from: the website quote form, or entered by staff (phone, email, walk-in).
+enum LeadSource {
+  WEBSITE
+  STAFF
 }
 
 enum QuoteRequestStatus {
@@ -137,31 +138,38 @@ model Session {
 // ─────────────────────────────────────────────────────────────
 
 model CompanySettings {
-  id                  String   @id @default("company")
-  legalName           String
-  displayName         String
-  addressLine1        String
-  addressLine2        String?
-  city                String
-  stateProvince       String
-  postalCode          String
-  country             String
-  phone               String?
-  operationsPhone     String?
-  email               String?
-  operationsEmail     String?
-  website             String?
-  mcNumber            String?
-  dotNumber           String?
-  businessNumber      String?
-  logoStorageKey      String?
-  paymentInstructions String?
-  carrierTerms        String?
-  shipperTerms        String?
-  bolInstructions     String?
-  bolTerms            String?
-  updatedAt           DateTime @updatedAt
-  updatedById         String?
+  id                      String   @id @default("company")
+  legalName               String
+  displayName             String
+  addressLine1            String
+  addressLine2            String?
+  city                    String
+  stateProvince           String
+  postalCode              String
+  country                 String
+  phone                   String?
+  operationsPhone         String?
+  email                   String?
+  operationsEmail         String?
+  website                 String?
+  mcNumber                String?
+  dotNumber               String?
+  // Standard Carrier Alpha Code and D-U-N-S number.
+  scacCode                String?
+  dunsNumber              String?
+  businessNumber          String?
+  logoStorageKey          String?
+  paymentInstructions     String?
+  carrierTerms            String?
+  shipperTerms            String?
+  bolInstructions         String?
+  bolTerms                String?
+  // Invoices: default payment terms in days (0 = due on receipt; null = no due date printed)
+  // and notes printed at the bottom of every invoice.
+  invoicePaymentTermsDays Int?
+  invoiceNotes            String?
+  updatedAt               DateTime @updatedAt
+  updatedById             String?
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -169,24 +177,26 @@ model CompanySettings {
 // ─────────────────────────────────────────────────────────────
 
 model Client {
-  id            String       @id @default(cuid())
-  companyName   String
-  contactName   String?
-  email         String?
-  phone         String?
-  addressLine1  String?
-  addressLine2  String?
-  city          String?
-  stateProvince String?
-  postalCode    String?
-  country       String?
-  mcNumber      String?
-  dotNumber     String?
-  notes         String?
-  status        RecordStatus @default(ACTIVE)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  createdById   String?
+  id               String       @id @default(cuid())
+  companyName      String
+  contactName      String?
+  email            String?
+  phone            String?
+  addressLine1     String?
+  addressLine2     String?
+  city             String?
+  stateProvince    String?
+  postalCode       String?
+  country          String?
+  mcNumber         String?
+  dotNumber        String?
+  // Overrides CompanySettings.invoicePaymentTermsDays for this client's invoices.
+  paymentTermsDays Int?
+  notes            String?
+  status           RecordStatus @default(ACTIVE)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  createdById      String?
 
   contacts ClientContact[]
   loads    Load[]
@@ -357,6 +367,7 @@ model Load {
   driver        Driver?             @relation(fields: [driverId], references: [id], onDelete: Restrict)
   statusHistory LoadStatusHistory[]
   documents     Document[]
+  charges       LoadCharge[]
 
   @@index([containerNumber])
   @@index([createdAt])
@@ -390,6 +401,21 @@ model LoadStatusHistory {
 // unique per (load, type); a regeneration creates a new row and never replaces
 // an earlier version. Uploaded documents have no version.
 // ─────────────────────────────────────────────────────────────
+
+// Extra charges billed to the client on top of the client rate (chassis, detention,
+// storage …). CONFIDENTIAL like clientRate: printed only on the client invoice.
+model LoadCharge {
+  id          String   @id @default(cuid())
+  loadId      String
+  description String
+  amount      Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  load Load @relation(fields: [loadId], references: [id], onDelete: Cascade)
+
+  @@index([loadId])
+}
 
 model Document {
   id               String         @id @default(cuid())
@@ -459,6 +485,8 @@ model QuoteRequest {
   /// Callback requests: when the client prefers to be called (free text from a fixed list).
   preferredTime String?
   status        QuoteRequestStatus @default(NEW)
+  source        LeadSource         @default(WEBSITE)
+  createdById   String?
   createdAt     DateTime           @default(now())
 
   @@index([status, createdAt])

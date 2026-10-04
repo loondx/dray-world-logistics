@@ -22,6 +22,7 @@ export function SiteFooter({ company }: { company: PublicCompanyProfile }) {
   const regulatory = [
     company.mcNumber ? `MC ${company.mcNumber}` : null,
     company.dotNumber ? `USDOT ${company.dotNumber}` : null,
+    company.scacCode ? `SCAC ${company.scacCode}` : null,
   ].filter(Boolean);
   return (
     <footer className="relative bg-brand-navy pb-[max(1.5rem,env(safe-area-inset-bottom))] text-white/75">
