@@ -1,292 +1,84 @@
-# DRAY-WORLD LOGISTICS — Website & TMS
+# DRAY-WORLD Logistics
 
-One Next.js application containing:
+Website and transportation management system (TMS) for DRAY-WORLD Logistics, built as a single Next.js app.
 
-- **Public website** — `src/app/(marketing)` (full site is Phase 7; an interim page is live now)
-- **Private Transportation Management System** — `src/app/(dashboard)`: loads, clients, carriers, drivers, documents
-- **Document generation** — Carrier Load Confirmation, Client Rate Confirmation, Bill of Lading and client Invoice PDFs,
-  laid out after the client's reference documents; built on demand and downloaded, never stored
+- **Public website**: home, privacy and terms pages, plus a quote request form.
+- **Operations portal** (staff only): loads, clients, carriers, drivers and leads.
+- **Documents**: carrier load confirmations, client rate confirmations, bills of lading and invoices, generated as
+  PDFs on demand.
 
-Deployed as a modular monolith on one Linux VPS: `Nginx → Next.js → PostgreSQL`, with generated and uploaded
-documents on private disk storage.
-
-> Company address (confirmed by the client): 9 Nom Crescent Unit 2, Markham, ON L3S 2B3, Canada. Phone, email,
-> MC/DOT numbers, logo and document terms are entered by staff under **Settings** — nothing is invented.
+Live site: [dray-world.com](https://www.dray-world.com)
 
 ## Tech stack
 
-| Concern         | Choice                                                                         |
-| --------------- | ------------------------------------------------------------------------------ |
-| Framework       | Next.js 16.3 (App Router, Server Components, Server Actions, Turbopack)        |
-| Language        | TypeScript 5.9 (strict)                                                        |
-| UI              | Tailwind CSS 4, shadcn/ui (Radix), lucide icons                                |
-| Database        | PostgreSQL 16 (self-hosted, Docker) via Prisma ORM 7.10 + `@prisma/adapter-pg` |
-| Validation      | Zod 4                                                                          |
-| Auth            | Argon2id passwords, opaque DB-backed sessions, HTTP-only cookies               |
-| PDF             | `@react-pdf/renderer`                                                          |
-| Tests           | Vitest (unit + integration against a real `_test` database)                    |
-| Package manager | pnpm 11                                                                        |
+Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 + shadcn/ui · PostgreSQL + Prisma · Zod · `@react-pdf/renderer`
+· Vitest · pnpm
 
-All production dependencies are pinned to exact versions. Prisma is pinned to 7.10.0 (the npm `latest` tag
-currently points at an 8.0 release candidate, which is intentionally not used).
+## Run locally
 
-## Project layout
-
-```
-src/
-  app/
-    (marketing)/        public website — must not import TMS business logic
-    (auth)/login/       sign-in
-    (dashboard)/        internal TMS (every page calls requireUser/requirePermission)
-    api/                route handlers (health, on-demand document download, company logo)
-  components/           ui/ (shadcn), brand/, auth/, dashboard/, …
-  config/               company-defaults.ts — the only place company details appear in code
-  features/<domain>/    server actions + zod schemas per domain
-  generated/prisma/     generated Prisma client (git-ignored)
-  lib/                  auth/ (pure crypto helpers), db/, env.ts, logger.ts, labels/
-  server/               server-only: auth/, audit/, permissions/, services/, repositories/
-  proxy.ts              optimistic cookie check (NOT the security boundary)
-prisma/                 schema.prisma, migrations/, seed.ts (dev-only)
-scripts/                create-admin.ts
-tests/                  unit/, integration/, support/
-```
-
-## Local development
-
-Prerequisites: Node 24+, pnpm 11 (`corepack enable`), Docker.
+You need Node 24, pnpm (`corepack enable`) and Docker.
 
 ```bash
-cp .env.example .env
-# edit .env: set POSTGRES_PASSWORD (and the same password in DATABASE_URL),
-# DATA_ROOT and DOCUMENT_STORAGE_PATH to a directory OUTSIDE the repo, e.g.
-#   DATA_ROOT=/home/<you>/.local/share/dray-world
-#   DOCUMENT_STORAGE_PATH=/home/<you>/.local/share/dray-world/documents
-mkdir -p "$DATA_ROOT/documents" "$DATA_ROOT/backups"
-
-pnpm install                 # also generates the Prisma client
+cp .env.example .env          # then set a database password and a storage folder outside the repo
+pnpm install
 docker compose up -d postgres
-pnpm db:migrate:deploy       # apply migrations
-pnpm db:seed                 # optional: fictitious sample clients/carriers (refuses in production)
-pnpm admin:create            # create your login (prompts for email, name, password)
-pnpm company:defaults        # copy confirmed company details (MC, DOT, SCAC, DUNS, phone…) into empty Settings fields
-pnpm dev                     # http://localhost:3000 → /login
+pnpm db:migrate:deploy        # create the database tables
+pnpm db:seed                  # optional: sample data for development
+pnpm admin:create             # create your first login
+pnpm dev                      # http://localhost:3000
 ```
 
-### Commands
+There are no default accounts. Every user is created with `pnpm admin:create` or from **Settings** inside the
+portal.
 
-| Command                  | Purpose                                                                                       |
-| ------------------------ | --------------------------------------------------------------------------------------------- |
-| `pnpm dev`               | development server                                                                            |
-| `pnpm build`             | production build (standalone output)                                                          |
-| `pnpm start`             | run the standalone production build                                                           |
-| `pnpm check`             | format check + lint + typecheck + tests                                                       |
-| `pnpm test`              | all tests (needs the Postgres container running)                                              |
-| `pnpm format`            | Prettier                                                                                      |
-| `pnpm db:migrate`        | **development only**: create/apply a new migration                                            |
-| `pnpm db:migrate:deploy` | apply pending migrations (production path)                                                    |
-| `pnpm db:seed`           | development sample data                                                                       |
-| `pnpm admin:create`      | create an admin, or `--reset-password` for an existing one                                    |
-| `pnpm company:defaults`  | fill empty Settings → Company fields from `src/config/company-defaults.ts` (never overwrites) |
+## Commands
 
-Integration tests use a separate database named `<POSTGRES_DB>_test` (created and migrated automatically);
-they never touch the development database.
+| Command                  | What it does                                 |
+| ------------------------ | -------------------------------------------- |
+| `pnpm dev`               | Start the development server                 |
+| `pnpm build`             | Production build                             |
+| `pnpm check`             | Formatting, lint, type check and tests       |
+| `pnpm test`              | Tests (needs the Postgres container running) |
+| `pnpm db:migrate`        | Create a new migration (development only)    |
+| `pnpm db:migrate:deploy` | Apply pending migrations                     |
+| `pnpm admin:create`      | Create an admin or reset a password          |
+| `pnpm company:defaults`  | Fill empty company settings with defaults    |
 
-## Environment variables
+## Configuration
 
-See `.env.example`. Server-only; nothing is exposed with `NEXT_PUBLIC_`.
+All settings are environment variables. `.env.example` lists them with comments. Never commit a real `.env` file.
 
-| Variable                                              | Notes                                                                    |
-| ----------------------------------------------------- | ------------------------------------------------------------------------ |
-| `DATABASE_URL`                                        | host-side connection (Compose overrides the host to `postgres`)          |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Postgres container credentials                                           |
-| `POSTGRES_HOST_PORT`                                  | bound to `127.0.0.1` only                                                |
-| `APP_URL`                                             | public base URL                                                          |
-| `SESSION_TTL_HOURS`                                   | idle timeout (sliding); sessions also expire 7 days after sign-in        |
-| `STORAGE_DRIVER`                                      | `local` or `blob`; defaults to `blob` when a Blob token is set           |
-| `DOCUMENT_STORAGE_PATH`                               | private document root for the `local` driver                             |
-| `BLOB_READ_WRITE_TOKEN`                               | private Vercel Blob store for the `blob` driver (set by Vercel)          |
-| `DATABASE_URL_UNPOOLED`                               | optional direct connection used by migrations (set by Neon)              |
-| `RUN_MIGRATIONS`                                      | `true` to migrate on Vercel preview builds (own database only)           |
-| `MAX_DOCUMENT_SIZE_MB`                                | unused since documents are no longer uploaded (kept for older env files) |
-| `DATA_ROOT`                                           | Docker bind-mount root: `postgres/`, `documents/`, `backups/`            |
-| `INITIAL_ADMIN_EMAIL` / `INITIAL_ADMIN_PASSWORD`      | optional, only read by `pnpm admin:create`                               |
+| Variable                | Needed for                                        |
+| ----------------------- | ------------------------------------------------- |
+| `DATABASE_URL`          | The operations portal and quote form (PostgreSQL) |
+| `APP_URL`               | The public HTTPS address of the site              |
+| `BLOB_READ_WRITE_TOKEN` | File storage on Vercel (company logo)             |
+| `DOCUMENT_STORAGE_PATH` | File storage when self-hosting, outside the repo  |
+| `SESSION_TTL_HOURS`     | Optional: how long a sign-in stays active (hours) |
 
-There is no `SESSION_SECRET`: sessions are random opaque tokens and only their SHA-256 hash is stored, so no
-signing key is needed.
+## Deploy on Vercel
 
-## Authentication design
+Every push to `main` deploys to production.
 
-- Passwords: Argon2id (19 MiB, t=2, p=1). Minimum 12 characters.
-- Sign-in creates a 256-bit random token in an `HttpOnly`, `SameSite=Lax` cookie (`Secure` and `__Host-`
-  prefixed in production). The database stores only `sha256(token)`.
-- Sliding idle timeout (`SESSION_TTL_HOURS`) plus a 7-day absolute limit; deactivating a user ends their sessions.
-- 5 failed attempts for an email within 15 minutes blocks further attempts for that window (tracked in `AuditLog`).
-- Enforcement is server-side: `requireUser()` / `requirePermission()` in every dashboard layout, page and server
-  action; route handlers check the session themselves. `src/proxy.ts` only redirects cookie-less visitors early.
-- Roles (`ADMIN`, `OPERATIONS`, `DISPATCHER`, `ACCOUNTING`, `READ_ONLY`) map to permissions in
-  `src/server/permissions/permissions.ts`; code checks permissions, never roles.
+- **Website only:** leave `DATABASE_URL` unset. The public pages work; sign-in and the quote form show an
+  "unavailable" message.
+- **Full system:**
+  1. In the Vercel project, add a **Neon** Postgres database (Storage → Neon). This sets `DATABASE_URL`.
+  2. Add a **private Blob** store (Storage → Blob). This sets `BLOB_READ_WRITE_TOKEN`.
+  3. Set `APP_URL` to the production address and `ENABLE_EXPERIMENTAL_COREPACK=1`.
+  4. Redeploy. The build applies database migrations automatically.
+  5. From your machine, against the production database, create the first admin:
+     `DATABASE_URL=<production URL> pnpm admin:create`, then run `pnpm company:defaults` the same way.
 
-### First admin
+The app can also be self-hosted with Docker (`Dockerfile`, `docker-compose.yml`).
 
-There are no default credentials. Create the first administrator with the CLI:
+## Contributing
 
-```bash
-pnpm admin:create --email you@company.com --name "Your Name"          # on the host
-docker compose --profile tools run --rm tools pnpm admin:create \
-  --email you@company.com --name "Your Name"                          # on the server
-```
+Work on a branch, open a pull request, and make sure `pnpm check` and `pnpm build` pass. Schema changes need a
+migration (`pnpm db:migrate`) and an entry in [docs/MIGRATIONS.md](docs/MIGRATIONS.md).
 
-Forgotten password: `pnpm admin:create --email you@company.com --reset-password` (also signs out all sessions).
+Staff guide for the portal: [docs/TMS-GUIDE.md](docs/TMS-GUIDE.md).
 
-## Database
+## License
 
-- Migrations live in `prisma/migrations` and are committed. Development: `pnpm db:migrate`. Production: always
-  `prisma migrate deploy` (via the `tools` container). Never `db push` against production.
-- Load numbers come from a PostgreSQL sequence starting at **100001** (`Load_loadNumber_seq`), with a UNIQUE
-  constraint. Gaps are possible when a transaction rolls back; numbers are never reused.
-- Money is `NUMERIC(12,2)`. Appointment dates are `DATE` columns and appointment times are facility-local text,
-  so no time-zone conversion can move a pickup date.
-
-### Migration log
-
-| Migration                                  | Change                                                                                                                                                                                                                                                                        |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `20260930144801_init`                      | Initial schema: users/sessions, company settings, clients, carriers, drivers, loads, status history, documents, audit log, quote requests; load number sequence starts at 100001                                                                                              |
-| `20260930151940_simplify_load_fields`      | Load form simplified: container type/size → `equipmentType`/`equipmentSize`; single times → `pickupTimeFrom/To`, `deliveryTimeFrom/To`; pickup/delivery contacts; dispatch/operations notes → `internalNotes`; index on `createdAt`; company province corrected to ON, Canada |
-| `20260930152513_driver_last_name_optional` | `Driver.lastName` becomes optional                                                                                                                                                                                                                                            |
-| `20261001014714_quote_callback_requests`   | Website leads: `QuoteRequest.kind` (`QUOTE` / `CALLBACK`) and `preferredTime` for "call me back" requests; `email` and `serviceType` become optional (call-backs only need a name and phone)                                                                                  |
-| `20261001060653_quote_shipment_details`    | Website quote form: `QuoteRequest.equipment`, `loadCount` and `readyDate` (date only); the website no longer sends call-back requests (earlier ones stay readable)                                                                                                            |
-| `20261004151740_invoicing`                 | Client invoices: `LoadCharge` (extra charges billed to the client per load), `CompanySettings.invoicePaymentTermsDays` / `invoiceNotes`, `Client.paymentTermsDays` (overrides the company default)                                                                            |
-| `20261004170000_three_load_statuses`       | `LoadStatus` reduced to `CREATED` / `IN_PROGRESS` / `COMPLETED` (old in-between statuses → `IN_PROGRESS`); cancelled loads without documents deleted, with documents → `COMPLETED`; merged status-history steps removed (audit log keeps the detail). Hand-written SQL        |
-| `20261004160638_company_scac_duns`         | `CompanySettings.scacCode` and `dunsNumber` (printed on documents; filled by `pnpm company:defaults`)                                                                                                                                                                         |
-| `20261004161846_lead_source`               | Leads: `QuoteRequest.source` (`WEBSITE` / `STAFF`) and `createdById`, so staff can add phone and email leads next to website requests                                                                                                                                         |
-
-## Using the system
-
-Day-to-day staff guide (dashboard, load workflow, which document goes to whom, roles, recommended practices):
-[docs/TMS-GUIDE.md](docs/TMS-GUIDE.md).
-
-1. **Settings** (admin): complete phone, email, MC/DOT, upload the logo (PNG/JPG), and paste the legally reviewed
-   carrier terms / client terms / BOL instructions. Add the other staff users here.
-2. **Loads → Create load → Drayage/OTR.** Pick the client (or create it inline with **New client**), the carrier
-   (**New carrier** inline) and driver (**Add driver** inline — truck/trailer fill in automatically). Previously used
-   pickup/delivery facilities can be re-used with **Use saved location**. Enter client rate and carrier rate; the
-   gross margin is shown live. Only client and load date are required.
-3. On the load page, **Documents**: **View** or **Download** the Carrier Load Confirmation (carrier rate only), Client
-   Rate Confirmation (client rate only), Bill of Lading (no rates) and the client Invoice (`INV-<load #>`, client rate
-   - extra charges). Each PDF is built from the load's current data; nothing is stored.
-4. Move the load along with **Mark In progress / Completed** or **Change status**; every change appears in the
-   timeline. A Created load that is cancelled is **deleted** instead.
-5. Find any load later from **Loads** (search by load #, container #, client, carrier, driver, city; filter by
-   status, type, client, carrier, dates).
-
-## Documents & rate privacy
-
-| Document                        | Rates shown                 | Never contains                                                 |
-| ------------------------------- | --------------------------- | -------------------------------------------------------------- |
-| Carrier Load Confirmation       | carrier rate                | client rate, client identity/reference, margin, internal notes |
-| Client Rate Confirmation        | client rate                 | carrier rate, carrier/driver, margin, internal notes           |
-| Invoice (`INV-<load #>`)        | client rate + extra charges | carrier rate, carrier/driver, margin, internal notes           |
-| Bill of Lading (`BOL-<load #>`) | none                        | any rate, client identity/reference, margin, internal notes    |
-
-Enforced in three layers: a per-document database `select` that does not fetch forbidden fields
-(`src/lib/pdf/mappings/selects.ts`), typed DTO mappings (`src/lib/pdf/mappings/*`), and tests that search the
-serialized DTOs for leaked values (`tests/unit/pdf-documents.test.ts`). Rate-bearing documents can only be opened
-by users with the `financials:read` permission.
-
-**Changing a layout** only touches `src/lib/pdf/<document>/template.tsx` and the shared components in
-`src/lib/pdf/components/` — never load logic. Render the documents from fixture data for visual review with:
-
-```bash
-PDF_OUTPUT_DIR=/tmp/pdf-preview pnpm vitest run tests/unit/pdf-documents.test.ts
-```
-
-**Generated on demand, never stored.** `GET /api/loads/<id>/documents/<carrier-confirmation|client-confirmation|bol|invoice>`
-checks the session and the document-type permission, builds the PDF from the load's current data and streams it
-(`?disposition=inline` to view). Nothing is written to disk or Blob storage; each download is recorded in the audit
-log (`DOCUMENT_GENERATED`). File names: `<load #>-carrier-load-confirmation.pdf`, `<load #>-client-rate-confirmation.pdf`,
-`BOL-<load #>.pdf`, `INV-<load #>.pdf`.
-
-**Storage** (`DOCUMENT_STORAGE_PATH` or private Vercel Blob) now holds only the company logo uploaded in Settings.
-`Document` rows and files created before 2026-10-04 (versioned PDFs, POD uploads) are kept untouched but are no
-longer shown in the portal.
-
-## Git workflow
-
-- `main` is always deployable; Vercel deploys it to production.
-- Work on a branch (`feat/…`, `fix/…`), open a pull request, and let the Vercel preview and
-  `pnpm check` pass before merging. Squash-merge to keep `main` readable.
-- Never commit `.env*` files (only `.env.example`); secrets live in Vercel / the server.
-- Schema changes ship with their migration (`pnpm db:migrate`) and a row in the migration log.
-
-## Deploying to Vercel
-
-### Public website without PostgreSQL
-
-Leave `DATABASE_URL` unset to deploy the public website immediately. No database, Blob token,
-or `APP_URL` is required in this mode. Migrations are skipped, company details come from
-`src/config/company-defaults.ts`, and the homepage, privacy and terms pages work normally.
-Sign-in and online quote submission display an unavailable message; no requests are saved.
-Connect PostgreSQL and configure the variables below when enabling the operations portal.
-
-### Full operations portal
-
-The app runs on Vercel with a hosted PostgreSQL and a **private** Vercel Blob store for documents
-(generated PDFs, uploaded PODs, the company logo). Files are never public: they are only served through
-the authenticated `/api/documents/[id]/download` route.
-
-1. **Import the repository** in Vercel (framework: Next.js). `vercel.json` sets the install and build
-   commands; the build runs `scripts/vercel-build.mjs` (Prisma generate → migrations → `next build`).
-2. **Database:** add Neon from the Vercel Marketplace (Storage → Neon). It sets `DATABASE_URL` (pooled)
-   and `DATABASE_URL_UNPOOLED` (used for migrations). Pick a region close to the function region.
-3. **Documents:** Storage → Blob → create a **private** store and connect it; this sets
-   `BLOB_READ_WRITE_TOKEN`, which switches document storage to Blob automatically.
-4. **Environment variables** (Production, and Preview if previews get their own database):
-   `APP_URL` (the production URL), `SESSION_TTL_HOURS` (optional), and
-   `ENABLE_EXPERIMENTAL_COREPACK=1` so Vercel uses the pnpm version pinned in `package.json`.
-5. **Verify configuration before redeploying:** `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, and
-   an HTTPS `APP_URL` must be set for the target environment. Set `STORAGE_DRIVER=blob` or leave it
-   unset. `DATABASE_URL_UNPOOLED` is optional; an empty value falls back to `DATABASE_URL` for
-   migrations. Use Node.js **24.x**. The build validates configuration before running migrations.
-   Changes to Vercel environment variables require a new deployment.
-6. **Deploy**, then create the first admin from your machine against the production database:
-   `DATABASE_URL=<production direct URL> pnpm admin:create --email … --name "…"`.
-   Then fill the company details once: `DATABASE_URL=<production direct URL> pnpm company:defaults`.
-
-Migrations run on **production** builds by default. Preview builds skip migrations unless explicitly enabled.
-To migrate previews too, give them a separate database (e.g. Neon preview branches) and set
-`RUN_MIGRATIONS=true` for the Preview environment.
-
-Limits on Vercel: request bodies are capped at 4.5 MB, so document uploads are limited to 4 MB there.
-
-## Docker / deployment (summary — full guide in Phase 8)
-
-```
-/opt/dray-world/        repository checkout + .env
-/data/dray-world/
-  postgres/             PostgreSQL data (bind mount)
-  documents/            generated + uploaded documents (bind mount, owned by uid 1001)
-  backups/              database + document backups
-```
-
-```bash
-sudo mkdir -p /data/dray-world/{postgres,documents,backups}
-sudo chown 1001:1001 /data/dray-world/documents        # app container runs as uid 1001
-docker compose build
-docker compose up -d postgres
-docker compose --profile tools run --rm tools          # prisma migrate deploy
-docker compose up -d app                               # listens on 127.0.0.1:3000 for Nginx
-```
-
-- Only Nginx (80/443) is public. PostgreSQL and the app bind to `127.0.0.1`.
-- Containers restart automatically (`unless-stopped`) and have health checks (`/api/health`).
-- Rebuilding or replacing containers never touches `/data/dray-world`.
-
-Nginx/HTTPS configuration, backup/restore scripts and the upgrade procedure arrive in Phase 8.
-
-## Troubleshooting
-
-- **`Invalid server environment configuration: …`** — a required variable is missing from `.env`.
-- **`Connection url is empty`** from Prisma — set `DATABASE_URL` in the shell/`.env`, or in Vercel Project Settings → Environment Variables for Production (and Preview when used), then redeploy. Connecting a database to another project or environment does not configure this deployment.
-- **Integration tests fail to connect** — start Postgres: `docker compose up -d postgres`.
-- **`EACCES` scanning `.data/postgres`** — `DATA_ROOT` points inside the repo; move it outside.
+Proprietary. All rights reserved.

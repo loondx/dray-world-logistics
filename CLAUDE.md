@@ -13,5 +13,5 @@
 - Money: `Decimal(12,2)` + decimal.js; no floating-point arithmetic.
 - Dates: appointment dates are `@db.Date`, times are facility-local strings — never convert time zones.
 - Documents are stored under `DOCUMENT_STORAGE_PATH`, never in `public/`.
-- Schema changes: `pnpm db:migrate` (dev) and record the migration in the README migration log.
+- Schema changes: `pnpm db:migrate` (dev) and record the migration in `docs/MIGRATIONS.md`.
 - Before finishing: `pnpm check` and `pnpm build` must pass.
